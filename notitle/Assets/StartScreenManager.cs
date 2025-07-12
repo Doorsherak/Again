@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using System.Collections;
+using TMPro;
 
 public class StartScreenManager : MonoBehaviour
 {
@@ -9,10 +10,10 @@ public class StartScreenManager : MonoBehaviour
     public Button startButton;
     public Button optionsButton;
     public Button quitButton;
-    public Text gameTitle;
+    public TextMeshProUGUI gameTitle;
     public GameObject optionsPanel;
     public Slider volumeSlider;
-    public Text volumeValueText;
+    public TextMeshProUGUI volumeValueText;
     public AudioSource backgroundMusic;
 
     [Header("애니메이션 설정")]
@@ -30,6 +31,17 @@ public class StartScreenManager : MonoBehaviour
 
     void InitializeUI()
     {
+        // 자동으로 UI 요소 찾기 (연결되지 않은 경우)
+        if (gameTitle == null)
+        {
+            gameTitle = GameObject.Find("Text (TMP)")?.GetComponent<TextMeshProUGUI>();
+        }
+
+        if (volumeValueText == null)
+        {
+            volumeValueText = GameObject.Find("VolumeValueText")?.GetComponent<TextMeshProUGUI>();
+        }
+
         // Canvas Group 컴포넌트 가져오기 (페이드 효과용)
         canvasGroup = GetComponent<CanvasGroup>();
         if (canvasGroup == null)
