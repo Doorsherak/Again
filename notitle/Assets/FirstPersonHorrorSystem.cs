@@ -115,20 +115,15 @@ public class FirstPersonHorrorSystem : MonoBehaviour
             // 정지 또는 매우 느린 움직임 - 긴장감 증가
             targetIntensity = 0.8f * maxHorrorIntensity;
         }
-        else if (averageSpeed > runThreshold)
+        else if (averageSpeed > walkThreshold)
         {
             // 빠른 움직임 - 패닉 상태
             targetIntensity = 1f * maxHorrorIntensity;
         }
-        else if (averageSpeed > walkThreshold)
+        else if (averageSpeed > sneakThreshold)
         {
             // 보통 걷기 - 중간 긴장
             targetIntensity = 0.5f * maxHorrorIntensity;
-        }
-        else
-        {
-            // 천천히 걷기 - 기본 상태
-            targetIntensity = 0.2f * maxHorrorIntensity;
         }
 
         // 부드러운 전환
@@ -171,7 +166,7 @@ public class FirstPersonHorrorSystem : MonoBehaviour
         // 주변 소음 (빠르게 움직일 때)
         if (ambientSource != null)
         {
-            if (averageSpeed > runThreshold)
+            if (averageSpeed > walkThreshold)
             {
                 ambientSource.volume = horrorIntensity * 0.8f;
             }
@@ -225,7 +220,7 @@ public class FirstPersonHorrorSystem : MonoBehaviour
         // 카메라 흔들림 효과
         float shakeIntensity = 0f;
 
-        if (averageSpeed > runThreshold)
+        if (averageSpeed > walkThreshold)
         {
             // 빠르게 움직일 때 - 달리기 흔들림
             shakeIntensity = horrorIntensity * 0.02f;
@@ -305,9 +300,9 @@ public class FirstPersonHorrorSystem : MonoBehaviour
 
             string state = "Still";
             if (averageSpeed < sneakThreshold) state = "Still/Sneaking";
-            else if (averageSpeed > runThreshold) state = "Running";
-            else if (averageSpeed > walkThreshold) state = "Walking";
-            else state = "Slow Walking";
+            else if (averageSpeed > walkThreshold) state = "Running";
+            else if (averageSpeed > sneakThreshold) state = "Walking";
+           
 
             GUILayout.Label($"State: {state}");
         }
