@@ -146,16 +146,17 @@ public class FirstPersonHorrorSystem : MonoBehaviour
         // 심장박동 효과
         if (heartbeatSource != null)
         {
-            heartbeatSource.volume = horrorIntensity * 0.7f;
-            heartbeatSource.pitch = 1f + (horrorIntensity * 0.3f);
+            heartbeatSource.volume = horrorIntensity * 1f;
+            heartbeatSource.pitch = Mathf.Lerp(0.5f, 1.5f, horrorIntensity); // 심장박동 속도 변화
         }
 
         // 숨소리 효과 (가만히 있을 때)
         if (breathingSource != null)
         {
+            breathingSource.pitch = 1f; // 숨소리의 높낮이를 일정하게 유지
             if (averageSpeed < sneakThreshold)
             {
-                breathingSource.volume = horrorIntensity * 0.5f;
+                breathingSource.volume = horrorIntensity * 0.1f;
             }
             else
             {
@@ -163,16 +164,16 @@ public class FirstPersonHorrorSystem : MonoBehaviour
             }
         }
 
-        // 주변 소음 (빠르게 움직일 때)
+        // 주변 소음 (ambient 소리 볼륨 감소)
         if (ambientSource != null)
         {
             if (averageSpeed > walkThreshold)
             {
-                ambientSource.volume = horrorIntensity * 0.8f;
+                ambientSource.volume = horrorIntensity * 0.5f; // 기존 0.8f에서 0.5f로 감소
             }
             else
             {
-                ambientSource.volume = horrorIntensity * 0.3f;
+                ambientSource.volume = horrorIntensity * 0.1f; // 기존 0.3f에서 0.1f로 감소
             }
         }
 
