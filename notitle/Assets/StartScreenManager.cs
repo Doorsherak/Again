@@ -77,7 +77,7 @@ public class StartScreenManager : MonoBehaviour
         // 배경 음악 시작
         if (backgroundMusic != null)
         {
-            backgroundMusic.volume = PlayerPrefs.GetFloat("MasterVolume", 1f);
+            backgroundMusic.volume = PlayerPrefs.GetFloat("MasterVolume", 0.5f);
             backgroundMusic.Play();
         }
     }

@@ -2,13 +2,12 @@
 
 public class Jump : MonoBehaviour
 {
-    Rigidbody rigidbody;
+    private new Rigidbody rigidbody; // Use 'new' keyword to explicitly hide the inherited member
     public float jumpStrength = 2;
     public event System.Action Jumped;
 
     [SerializeField, Tooltip("Prevents jumping when the transform is in mid-air.")]
     GroundCheck groundCheck;
-
 
     void Reset()
     {

@@ -1,0 +1,29 @@
+fileFormatVersion: 2
+guid: 61e8a47fef0088a4e946e312ae3930fe
+AudioImporter:
+  externalObjects: {}
+  serializedVersion: 6
+  defaultSettings:
+    loadType: 0
+    sampleRateSetting: 0
+    sampleRateOverride: 44100
+    compressionFormat: 1
+    quality: 1
+    conversionMode: 0
+  platformSettingOverrides: {}
+  forceToMono: 0
+  normalize: 1
+  preloadAudioData: 1
+  loadInBackground: 0
+  ambisonic: 0
+  3D: 1
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 300582
+  packageName: Small Sound Kit
+  packageVersion: 1.0
+  assetPath: Assets/Small Sound Kit/Magic/Mgc_Fading_Drops_Fire_01.wav
+  uploadId: 703088

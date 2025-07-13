@@ -3,13 +3,12 @@
 [ExecuteInEditMode]
 public class Zoom : MonoBehaviour
 {
-    Camera camera;
+    private new Camera camera; // Use 'new' to explicitly hide the inherited 'Component.camera' member.
     public float defaultFOV = 60;
     public float maxZoomFOV = 15;
     [Range(0, 1)]
     public float currentZoom;
     public float sensitivity = 1;
-
 
     void Awake()
     {
