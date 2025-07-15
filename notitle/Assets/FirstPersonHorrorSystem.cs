@@ -46,6 +46,8 @@ public class FirstPersonHorrorSystem : MonoBehaviour
     private Vignette vignette;
     private ChromaticAberration chromaticAberration;
 
+    // ...
+
     void Start()
     {
         controller = GetComponent<CharacterController>();
@@ -54,6 +56,18 @@ public class FirstPersonHorrorSystem : MonoBehaviour
         if (playerCamera != null)
         {
             originalCameraPosition = playerCamera.transform.localPosition;
+        }
+
+        // Shadow Atlas 크기 조정
+        QualitySettings.shadowResolution = ShadowResolution.Medium;
+
+        // 조명 설정 최적화
+        foreach (Light light in FindObjectsByType<Light>(FindObjectsSortMode.None))
+        {
+            if (light.shadows != LightShadows.None)
+            {
+                light.shadowResolution = UnityEngine.Rendering.LightShadowResolution.Low; // 수정된 코드
+            }
         }
 
         // Post-processing 설정
