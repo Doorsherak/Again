@@ -7,14 +7,14 @@ public class GameOptionsManager : MonoBehaviour
 {
     [Header("Audio Controls")]
     public Slider volumeSlider;
-    public TextMeshProUGUI volumeText; // TextMeshPro로 변경
+    public TextMeshProUGUI volumeText;
 
     [Header("Resolution Controls")]
-    public TMP_Dropdown resolutionDropdown; // TMP_Dropdown으로 변경
+    public TMP_Dropdown resolutionDropdown;
     public Toggle fullscreenToggle;
 
     [Header("Quality Controls")]
-    public TMP_Dropdown qualityDropdown; // TMP_Dropdown으로 변경
+    public TMP_Dropdown qualityDropdown;
 
     [Header("Control Buttons")]
     public Button applyButton;
@@ -39,29 +39,46 @@ public class GameOptionsManager : MonoBehaviour
 
     void InitializeResolutions()
     {
-        // 해상도 설정
+        // 해상도 설정 - 중복 제거 및 정렬
         resolutions = Screen.resolutions;
         resolutionDropdown.ClearOptions();
+
+        // 중복 해상도 제거를 위한 HashSet 사용
+        HashSet<string> uniqueResolutions = new HashSet<string>();
         List<string> resolutionOptions = new List<string>();
+        List<Resolution> filteredResolutions = new List<Resolution>();
+
         currentResolutionIndex = 0;
 
         for (int i = 0; i < resolutions.Length; i++)
         {
             string option = $"{resolutions[i].width} x {resolutions[i].height}";
-            resolutionOptions.Add(option);
 
-            if (resolutions[i].width == Screen.currentResolution.width &&
-                resolutions[i].height == Screen.currentResolution.height)
+            // 중복 해상도 제거
+            if (!uniqueResolutions.Contains(option))
             {
-                currentResolutionIndex = i;
+                uniqueResolutions.Add(option);
+                resolutionOptions.Add(option);
+                filteredResolutions.Add(resolutions[i]);
+
+                // 현재 해상도와 일치하는 인덱스 찾기
+                if (resolutions[i].width == Screen.currentResolution.width &&
+                    resolutions[i].height == Screen.currentResolution.height)
+                {
+                    currentResolutionIndex = filteredResolutions.Count - 1;
+                }
             }
         }
+
+        // 필터링된 해상도 배열로 교체
+        resolutions = filteredResolutions.ToArray();
 
         if (resolutionOptions.Count > 0)
         {
             resolutionDropdown.AddOptions(resolutionOptions);
             resolutionDropdown.value = currentResolutionIndex;
             resolutionDropdown.RefreshShownValue();
+            Debug.Log($"해상도 초기화 완료. 현재 인덱스: {currentResolutionIndex}");
         }
         else
         {
@@ -88,6 +105,7 @@ public class GameOptionsManager : MonoBehaviour
                 qualityDropdown.AddOptions(qualityOptions);
                 qualityDropdown.value = QualitySettings.GetQualityLevel();
                 qualityDropdown.RefreshShownValue();
+                Debug.Log($"품질 설정 초기화 완료. 현재 레벨: {QualitySettings.GetQualityLevel()}");
             }
             else
             {
@@ -111,21 +129,41 @@ public class GameOptionsManager : MonoBehaviour
         if (resolutionDropdown != null)
         {
             int savedResolution = PlayerPrefs.GetInt("ResolutionIndex", currentResolutionIndex);
-            resolutionDropdown.value = savedResolution;
+            // 저장된 인덱스가 유효한지 확인
+            if (savedResolution >= 0 && savedResolution < resolutions.Length)
+            {
+                resolutionDropdown.value = savedResolution;
+                currentResolutionIndex = savedResolution;
+            }
+            else
+            {
+                resolutionDropdown.value = currentResolutionIndex;
+            }
+            resolutionDropdown.RefreshShownValue();
         }
 
         // 전체화면 설정 로드
         if (fullscreenToggle != null)
         {
-            bool isFullscreen = PlayerPrefs.GetInt("Fullscreen", 1) == 1;
+            bool isFullscreen = PlayerPrefs.GetInt("Fullscreen", Screen.fullScreen ? 1 : 0) == 1;
             fullscreenToggle.isOn = isFullscreen;
+            Debug.Log($"전체화면 설정 로드: {isFullscreen}");
         }
 
         // 품질 설정 로드
         if (qualityDropdown != null)
         {
             int qualityIndex = PlayerPrefs.GetInt("QualityLevel", QualitySettings.GetQualityLevel());
-            qualityDropdown.value = qualityIndex;
+            // 저장된 인덱스가 유효한지 확인
+            if (qualityIndex >= 0 && qualityIndex < QualitySettings.names.Length)
+            {
+                qualityDropdown.value = qualityIndex;
+            }
+            else
+            {
+                qualityDropdown.value = QualitySettings.GetQualityLevel();
+            }
+            qualityDropdown.RefreshShownValue();
         }
 
         Debug.Log("LoadSettings 메서드가 호출되었습니다.");
@@ -152,7 +190,7 @@ public class GameOptionsManager : MonoBehaviour
         Debug.Log("Event listeners have been set up.");
     }
 
-    void OnVolumeChanged(float value)
+    public void OnVolumeChanged(float value)
     {
         AudioListener.volume = value;
         UpdateVolumeText(value);
@@ -160,60 +198,113 @@ public class GameOptionsManager : MonoBehaviour
 
     void UpdateVolumeText(float value)
     {
-        volumeText.text = Mathf.Round(value * 100f) + "%";
+        if (volumeText != null)
+        {
+            volumeText.text = Mathf.Round(value * 100f) + "%";
+        }
     }
 
-    void OnResolutionChanged(int resolutionIndex)
+    public void OnResolutionChanged(int resolutionIndex)
     {
-        currentResolutionIndex = resolutionIndex;
-        Resolution selectedResolution = resolutions[resolutionIndex];
-        Screen.SetResolution(selectedResolution.width, selectedResolution.height, fullscreenToggle.isOn);
-        Debug.Log($"해상도가 즉시 변경되었습니다: {selectedResolution.width} x {selectedResolution.height}");
+        Debug.Log($"OnResolutionChanged 호출됨! 인덱스: {resolutionIndex}, 배열 길이: {resolutions?.Length}");
+
+        if (resolutions == null)
+        {
+            Debug.LogError("resolutions 배열이 null입니다!");
+            return;
+        }
+
+        if (resolutionIndex >= 0 && resolutionIndex < resolutions.Length)
+        {
+            currentResolutionIndex = resolutionIndex;
+            Debug.Log($"해상도 드롭다운 값 변경: {resolutionIndex} - {resolutions[resolutionIndex].width}x{resolutions[resolutionIndex].height}");
+        }
+        else
+        {
+            Debug.LogError($"잘못된 해상도 인덱스: {resolutionIndex}");
+        }
     }
 
-    void OnFullscreenToggled(bool isFullscreen)
+    // 테스트용 메서드
+    public void TestMethod()
     {
-        Screen.fullScreen = isFullscreen;
-        Debug.Log($"전체화면 설정이 즉시 변경되었습니다: {isFullscreen}");
+        Debug.Log("테스트 메서드가 호출되었습니다!");
     }
 
-    void OnQualityChanged(int qualityIndex)
+    public void OnFullscreenToggled(bool isFullscreen)
     {
-        QualitySettings.SetQualityLevel(qualityIndex);
-        Debug.Log($"품질 설정이 즉시 변경되었습니다: {QualitySettings.names[qualityIndex]}");
+        Debug.Log($"전체화면 토글 변경: {isFullscreen}");
+    }
+
+    public void OnQualityChanged(int qualityIndex)
+    {
+        if (qualityIndex >= 0 && qualityIndex < QualitySettings.names.Length)
+        {
+            QualitySettings.SetQualityLevel(qualityIndex);
+            Debug.Log($"품질 설정이 즉시 변경되었습니다: {QualitySettings.names[qualityIndex]}");
+        }
     }
 
     void ApplySettings()
     {
         // 설정 저장
-        PlayerPrefs.SetFloat("MasterVolume", volumeSlider.value);
-        PlayerPrefs.SetInt("ResolutionIndex", resolutionDropdown.value);
-        PlayerPrefs.SetInt("Fullscreen", fullscreenToggle.isOn ? 1 : 0);
-        PlayerPrefs.SetInt("QualityLevel", qualityDropdown.value);
+        if (volumeSlider != null)
+            PlayerPrefs.SetFloat("MasterVolume", volumeSlider.value);
+
+        if (resolutionDropdown != null)
+            PlayerPrefs.SetInt("ResolutionIndex", resolutionDropdown.value);
+
+        if (fullscreenToggle != null)
+            PlayerPrefs.SetInt("Fullscreen", fullscreenToggle.isOn ? 1 : 0);
+
+        if (qualityDropdown != null)
+            PlayerPrefs.SetInt("QualityLevel", qualityDropdown.value);
 
         // 해상도 및 전체화면 적용
-        Resolution selectedResolution = resolutions[resolutionDropdown.value];
-        Screen.SetResolution(selectedResolution.width, selectedResolution.height, fullscreenToggle.isOn);
-        Screen.fullScreen = fullscreenToggle.isOn; // 전체화면 설정 적용
+        if (resolutionDropdown != null && fullscreenToggle != null)
+        {
+            int selectedIndex = resolutionDropdown.value;
+            if (selectedIndex >= 0 && selectedIndex < resolutions.Length)
+            {
+                Resolution selectedResolution = resolutions[selectedIndex];
+                Screen.SetResolution(selectedResolution.width, selectedResolution.height, fullscreenToggle.isOn);
+                Debug.Log($"해상도 적용: {selectedResolution.width} x {selectedResolution.height}, 전체화면: {fullscreenToggle.isOn}");
+            }
+        }
 
         PlayerPrefs.Save();
 
         Debug.Log("Settings Applied!");
-        // 설정 적용 완료 메시지 표시 (옵션)
         ShowAppliedMessage();
     }
 
     void ResetSettings()
     {
         // 기본값으로 리셋
-        volumeSlider.value = 0.8f;
-        resolutionDropdown.value = currentResolutionIndex;
-        fullscreenToggle.isOn = true;
-        qualityDropdown.value = QualitySettings.GetQualityLevel();
+        if (volumeSlider != null)
+        {
+            volumeSlider.value = 0.8f;
+            AudioListener.volume = 0.8f;
+            UpdateVolumeText(0.8f);
+        }
 
-        // 즉시 적용
-        AudioListener.volume = 0.8f;
-        UpdateVolumeText(0.8f);
+        if (resolutionDropdown != null)
+        {
+            resolutionDropdown.value = currentResolutionIndex;
+            resolutionDropdown.RefreshShownValue();
+        }
+
+        if (fullscreenToggle != null)
+        {
+            fullscreenToggle.isOn = true;
+        }
+
+        if (qualityDropdown != null)
+        {
+            int defaultQuality = QualitySettings.GetQualityLevel();
+            qualityDropdown.value = defaultQuality;
+            qualityDropdown.RefreshShownValue();
+        }
 
         Debug.Log("Settings Reset!");
     }
@@ -221,13 +312,12 @@ public class GameOptionsManager : MonoBehaviour
     void BackToMenu()
     {
         // 메인 메뉴로 돌아가기
-        // 씬 전환 코드 또는 메뉴 패널 활성화
         gameObject.SetActive(false);
     }
 
     void ShowAppliedMessage()
     {
-        // 설정 적용 완료 메시지 표시 (UI 구현 필요)
+        // 설정 적용 완료 메시지 표시
         Debug.Log("Settings have been applied successfully!");
     }
 
