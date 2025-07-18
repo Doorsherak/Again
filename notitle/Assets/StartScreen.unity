@@ -1397,8 +1397,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 624529455}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -8.9277525, y: 3.1459696, z: -1.6571673}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -8.927765, y: 3.1459656, z: -1.6571674}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1424,6 +1424,7 @@ MonoBehaviour:
   applyButton: {fileID: 1308783079}
   resetButton: {fileID: 41714122}
   backButton: {fileID: 785688861}
+  optionsPanel: {fileID: 1758047457}
 --- !u!1 &633790772
 GameObject:
   m_ObjectHideFlags: 0
@@ -1704,7 +1705,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 785688862}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 624529455}
+        m_TargetAssemblyTypeName: 
+        m_MethodName: 
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &785688862
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1874,7 +1887,7 @@ Transform:
   m_GameObject: {fileID: 912814685}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 300, y: 100, z: -89.48967}
+  m_LocalPosition: {x: 0, y: 100, z: -89.48967}
   m_LocalScale: {x: 1.8137653, y: 1.8137653, z: 1.8137653}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -5559,8 +5572,8 @@ MonoBehaviour:
 
 '
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 16eb91e3b5bc61745aa596e19dc676c0, type: 2}
-  m_sharedMaterial: {fileID: 1311031497435340452, guid: 16eb91e3b5bc61745aa596e19dc676c0, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -6499,7 +6512,7 @@ Transform:
   m_GameObject: {fileID: 2136303388}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 300, y: -100, z: -89.48967}
+  m_LocalPosition: {x: 0, y: -100, z: -89.48967}
   m_LocalScale: {x: 1.8137653, y: 1.8137653, z: 1.8137653}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -6516,5 +6529,5 @@ SceneRoots:
   - {fileID: 1140428714}
   - {fileID: 1226537507}
   - {fileID: 1163606951}
-  - {fileID: 624529456}
   - {fileID: 797830107}
+  - {fileID: 624529456}

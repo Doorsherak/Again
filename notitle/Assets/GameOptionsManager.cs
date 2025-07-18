@@ -1,7 +1,11 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using TMPro;
+using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.EventSystems;
+using System;
 
 public class GameOptionsManager : MonoBehaviour
 {
@@ -20,6 +24,9 @@ public class GameOptionsManager : MonoBehaviour
     public Button applyButton;
     public Button resetButton;
     public Button backButton;
+
+    [Header("Panel Reference")]
+    public GameObject optionsPanel; // 옵션 패널 참조 추가
 
     private Resolution[] resolutions;
     private int currentResolutionIndex = 0;
@@ -311,8 +318,79 @@ public class GameOptionsManager : MonoBehaviour
 
     void BackToMenu()
     {
-        // 메인 메뉴로 돌아가기
-        gameObject.SetActive(false);
+        Debug.Log("BackToMenu 호출됨 - 옵션 패널 비활성화");
+
+        // 코루틴을 사용하여 다음 프레임에 패널 비활성화
+        StartCoroutine(DeactivatePanelNextFrame());
+    }
+
+    IEnumerator DeactivatePanelNextFrame()
+    {
+        // 한 프레임 대기
+        yield return null;
+
+        // 버튼 상태 초기화 (중요!)
+        ResetButtonStates();
+
+        // 방법 1: 직접 참조된 옵션 패널 비활성화
+        if (optionsPanel != null)
+        {
+            optionsPanel.SetActive(false);
+        }
+        else
+        {
+            // 방법 2: 태그로 찾기
+            GameObject optionsPanel = GameObject.FindGameObjectWithTag("OptionsPanel");
+            if (optionsPanel != null)
+            {
+                optionsPanel.SetActive(false);
+            }
+            else
+            {
+                // 방법 3: 이름으로 찾기
+                GameObject optionsPanelByName = GameObject.Find("OptionsPanel");
+                if (optionsPanelByName != null)
+                {
+                    optionsPanelByName.SetActive(false);
+                }
+                else
+                {
+                    Debug.LogWarning("OptionsPanel을 찾을 수 없습니다!");
+                }
+            }
+        }
+    }
+
+
+void ResetButtonStates()
+{
+    // 모든 버튼의 상태를 초기화
+    Button[] allButtons = optionsPanel != null ?
+        optionsPanel.GetComponentsInChildren<Button>() :
+        FindObjectsByType<Button>();
+
+    foreach (Button button in allButtons)
+    {
+        if (button != null)
+        {
+            // 버튼을 다시 활성화
+            button.interactable = true;
+
+            // 선택 상태 해제: 현재 선택된 버튼과 같다면 선택 해제
+            if (EventSystem.current.currentSelectedGameObject == button.gameObject)
+            {
+                EventSystem.current.SetSelectedGameObject(null);
+            }
+        }
+    }
+
+    // EventSystem의 현재 선택된 객체 초기화
+    EventSystem.current.SetSelectedGameObject(null);
+}
+
+    private T[] FindObjectsByType<T>()
+    {
+        throw new NotImplementedException();
     }
 
     void ShowAppliedMessage()
