@@ -1,421 +1,195 @@
-using UnityEngine;
+Ôªøusing UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.SceneManagement;
 using TMPro;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.EventSystems;
-using System;
 
 public class GameOptionsManager : MonoBehaviour
 {
-    [Header("Audio Controls")]
-    public Slider volumeSlider;
-    public TextMeshProUGUI volumeText;
+    [Header("Audio")]
+    [SerializeField] Slider volumeSlider;
+    [SerializeField] TextMeshProUGUI volumeText;
 
-    [Header("Resolution Controls")]
-    public TMP_Dropdown resolutionDropdown;
-    public Toggle fullscreenToggle;
+    [Header("Resolution")]
+    [SerializeField] TMP_Dropdown resolutionDropdown;
+    [SerializeField] Toggle fullscreenToggle;
 
-    [Header("Quality Controls")]
-    public TMP_Dropdown qualityDropdown;
+    [Header("Quality")]
+    [SerializeField] TMP_Dropdown qualityDropdown;
 
-    [Header("Control Buttons")]
-    public Button applyButton;
-    public Button resetButton;
-    public Button backButton;
+    [Header("Buttons")]
+    [SerializeField] Button applyButton, resetButton, backButton;
 
-    [Header("Panel Reference")]
-    public GameObject optionsPanel; // ø…º« ∆–≥Œ ¬¸¡∂ √ﬂ∞°
+    [Header("Panel")]
+    [SerializeField] GameObject optionsPanel; // CanvasGroup Í∂åÏû•
 
-    private Resolution[] resolutions;
-    private int currentResolutionIndex = 0;
+    Resolution[] resolutions;
+    int currentIdx;
 
     void Start()
     {
-        InitializeOptions();
+        InitResolutions();
+        InitQuality();
         LoadSettings();
-        SetupEventListeners();
+        HookEvents();
     }
 
-    void InitializeOptions()
+    void InitResolutions()
     {
-        InitializeResolutions();
-        InitializeQuality();
-    }
+        if (!resolutionDropdown) { Debug.LogWarning("[Options] resolutionDropdown ÎØ∏ÏßÄÏ†ï"); return; }
 
-    void InitializeResolutions()
-    {
-        // «ÿªÛµµ º≥¡§ - ¡ﬂ∫π ¡¶∞≈ π◊ ¡§∑ƒ
-        resolutions = Screen.resolutions;
+        var all = Screen.resolutions;
+        var seen = new HashSet<string>();
+        var labels = new List<string>();
+        var filtered = new List<Resolution>();
+
+        int wNow = Screen.width, hNow = Screen.height;
+        currentIdx = 0;
+
+        foreach (var r in all)
+        {
+            string key = $"{r.width}x{r.height}";
+            if (seen.Add(key))
+            {
+                filtered.Add(r);
+                labels.Add(key);
+                if (r.width == wNow && r.height == hNow) currentIdx = filtered.Count - 1;
+            }
+        }
+        resolutions = filtered.ToArray();
+
         resolutionDropdown.ClearOptions();
-
-        // ¡ﬂ∫π «ÿªÛµµ ¡¶∞≈∏¶ ¿ß«— HashSet ªÁøÎ
-        HashSet<string> uniqueResolutions = new HashSet<string>();
-        List<string> resolutionOptions = new List<string>();
-        List<Resolution> filteredResolutions = new List<Resolution>();
-
-        currentResolutionIndex = 0;
-
-        for (int i = 0; i < resolutions.Length; i++)
-        {
-            string option = $"{resolutions[i].width} x {resolutions[i].height}";
-
-            // ¡ﬂ∫π «ÿªÛµµ ¡¶∞≈
-            if (!uniqueResolutions.Contains(option))
-            {
-                uniqueResolutions.Add(option);
-                resolutionOptions.Add(option);
-                filteredResolutions.Add(resolutions[i]);
-
-                // «ˆ¿Á «ÿªÛµµøÕ ¿œƒ°«œ¥¬ ¿Œµ¶Ω∫ √£±‚
-                if (resolutions[i].width == Screen.currentResolution.width &&
-                    resolutions[i].height == Screen.currentResolution.height)
-                {
-                    currentResolutionIndex = filteredResolutions.Count - 1;
-                }
-            }
-        }
-
-        // « ≈Õ∏µµ» «ÿªÛµµ πËø≠∑Œ ±≥√º
-        resolutions = filteredResolutions.ToArray();
-
-        if (resolutionOptions.Count > 0)
-        {
-            resolutionDropdown.AddOptions(resolutionOptions);
-            resolutionDropdown.value = currentResolutionIndex;
-            resolutionDropdown.RefreshShownValue();
-            Debug.Log($"«ÿªÛµµ √ ±‚»≠ øœ∑·. «ˆ¿Á ¿Œµ¶Ω∫: {currentResolutionIndex}");
-        }
-        else
-        {
-            Debug.LogError("«ÿªÛµµ ∏Ò∑œ¿Ã ∫ÒæÓ ¿÷Ω¿¥œ¥Ÿ.");
-        }
+        resolutionDropdown.AddOptions(labels);
+        resolutionDropdown.value = Mathf.Clamp(currentIdx, 0, labels.Count > 0 ? labels.Count - 1 : 0);
+        resolutionDropdown.RefreshShownValue();
     }
 
-    void InitializeQuality()
+    void InitQuality()
     {
-        // «∞¡˙ º≥¡§ √ ±‚»≠
-        if (qualityDropdown != null)
-        {
-            qualityDropdown.ClearOptions();
-            List<string> qualityOptions = new List<string>();
-            string[] qualityNames = QualitySettings.names;
-
-            if (qualityNames.Length > 0)
-            {
-                for (int i = 0; i < qualityNames.Length; i++)
-                {
-                    qualityOptions.Add(qualityNames[i]);
-                }
-
-                qualityDropdown.AddOptions(qualityOptions);
-                qualityDropdown.value = QualitySettings.GetQualityLevel();
-                qualityDropdown.RefreshShownValue();
-                Debug.Log($"«∞¡˙ º≥¡§ √ ±‚»≠ øœ∑·. «ˆ¿Á ∑π∫ß: {QualitySettings.GetQualityLevel()}");
-            }
-            else
-            {
-                Debug.LogError("«∞¡˙ º≥¡§ ∏Ò∑œ¿Ã ∫ÒæÓ ¿÷Ω¿¥œ¥Ÿ.");
-            }
-        }
+        if (!qualityDropdown) return;
+        qualityDropdown.ClearOptions();
+        var names = new List<string>(QualitySettings.names);
+        qualityDropdown.AddOptions(names);
+        qualityDropdown.value = QualitySettings.GetQualityLevel();
+        qualityDropdown.RefreshShownValue();
     }
 
     void LoadSettings()
     {
-        // ∫º∑˝ º≥¡§ ∑ŒµÂ
-        if (volumeSlider != null)
-        {
-            float volume = PlayerPrefs.GetFloat("MasterVolume", 0.8f);
-            volumeSlider.value = volume;
-            UpdateVolumeText(volume);
-            AudioListener.volume = volume;
-        }
+        float vol = PlayerPrefs.GetFloat("MasterVolume", 0.8f);
+        if (volumeSlider) volumeSlider.SetValueWithoutNotify(vol);
+        if (volumeText) volumeText.text = $"{Mathf.RoundToInt(vol * 100)}%";
+        AudioListener.volume = vol;
 
-        // «ÿªÛµµ º≥¡§ ∑ŒµÂ
-        if (resolutionDropdown != null)
+        if (resolutionDropdown && resolutions != null && resolutions.Length > 0)
         {
-            int savedResolution = PlayerPrefs.GetInt("ResolutionIndex", currentResolutionIndex);
-            // ¿˙¿Âµ» ¿Œµ¶Ω∫∞° ¿Ø»ø«—¡ˆ »Æ¿Œ
-            if (savedResolution >= 0 && savedResolution < resolutions.Length)
-            {
-                resolutionDropdown.value = savedResolution;
-                currentResolutionIndex = savedResolution;
-            }
-            else
-            {
-                resolutionDropdown.value = currentResolutionIndex;
-            }
+            int idx = Mathf.Clamp(PlayerPrefs.GetInt("ResolutionIndex", currentIdx), 0, resolutions.Length - 1);
+            currentIdx = idx;
+            resolutionDropdown.value = currentIdx;
             resolutionDropdown.RefreshShownValue();
         }
 
-        // ¿¸√º»≠∏È º≥¡§ ∑ŒµÂ
-        if (fullscreenToggle != null)
+        if (fullscreenToggle)
         {
-            bool isFullscreen = PlayerPrefs.GetInt("Fullscreen", Screen.fullScreen ? 1 : 0) == 1;
-            fullscreenToggle.isOn = isFullscreen;
-            Debug.Log($"¿¸√º»≠∏È º≥¡§ ∑ŒµÂ: {isFullscreen}");
+            bool fs = PlayerPrefs.GetInt("Fullscreen", Screen.fullScreen ? 1 : 0) == 1;
+            fullscreenToggle.SetIsOnWithoutNotify(fs);
         }
 
-        // «∞¡˙ º≥¡§ ∑ŒµÂ
-        if (qualityDropdown != null)
+        if (qualityDropdown)
         {
-            int qualityIndex = PlayerPrefs.GetInt("QualityLevel", QualitySettings.GetQualityLevel());
-            // ¿˙¿Âµ» ¿Œµ¶Ω∫∞° ¿Ø»ø«—¡ˆ »Æ¿Œ
-            if (qualityIndex >= 0 && qualityIndex < QualitySettings.names.Length)
-            {
-                qualityDropdown.value = qualityIndex;
-            }
-            else
-            {
-                qualityDropdown.value = QualitySettings.GetQualityLevel();
-            }
+            int q = Mathf.Clamp(PlayerPrefs.GetInt("QualityLevel", QualitySettings.GetQualityLevel()), 0, QualitySettings.names.Length - 1);
+            qualityDropdown.value = q;
             qualityDropdown.RefreshShownValue();
-        }
-
-        Debug.Log("LoadSettings ∏ﬁº≠µÂ∞° »£√‚µ«æ˙Ω¿¥œ¥Ÿ.");
-    }
-
-    void SetupEventListeners()
-    {
-        if (volumeSlider != null)
-            volumeSlider.onValueChanged.AddListener(OnVolumeChanged);
-        if (resolutionDropdown != null)
-            resolutionDropdown.onValueChanged.AddListener(OnResolutionChanged);
-        if (fullscreenToggle != null)
-            fullscreenToggle.onValueChanged.AddListener(OnFullscreenToggled);
-        if (qualityDropdown != null)
-            qualityDropdown.onValueChanged.AddListener(OnQualityChanged);
-
-        if (applyButton != null)
-            applyButton.onClick.AddListener(ApplySettings);
-        if (resetButton != null)
-            resetButton.onClick.AddListener(ResetSettings);
-        if (backButton != null)
-            backButton.onClick.AddListener(BackToMenu);
-
-        Debug.Log("Event listeners have been set up.");
-    }
-
-    public void OnVolumeChanged(float value)
-    {
-        AudioListener.volume = value;
-        UpdateVolumeText(value);
-    }
-
-    void UpdateVolumeText(float value)
-    {
-        if (volumeText != null)
-        {
-            volumeText.text = Mathf.Round(value * 100f) + "%";
+            QualitySettings.SetQualityLevel(q);
         }
     }
 
-    public void OnResolutionChanged(int resolutionIndex)
+    void HookEvents()
     {
-        Debug.Log($"OnResolutionChanged »£√‚µ ! ¿Œµ¶Ω∫: {resolutionIndex}, πËø≠ ±Ê¿Ã: {resolutions?.Length}");
-
-        if (resolutions == null)
-        {
-            Debug.LogError("resolutions πËø≠¿Ã null¿‘¥œ¥Ÿ!");
-            return;
-        }
-
-        if (resolutionIndex >= 0 && resolutionIndex < resolutions.Length)
-        {
-            currentResolutionIndex = resolutionIndex;
-            Debug.Log($"«ÿªÛµµ µÂ∑”¥ŸøÓ ∞™ ∫Ø∞Ê: {resolutionIndex} - {resolutions[resolutionIndex].width}x{resolutions[resolutionIndex].height}");
-        }
-        else
-        {
-            Debug.LogError($"¿ﬂ∏¯µ» «ÿªÛµµ ¿Œµ¶Ω∫: {resolutionIndex}");
-        }
+        if (volumeSlider) volumeSlider.onValueChanged.AddListener(OnVolumeChanged);
+        if (resolutionDropdown) resolutionDropdown.onValueChanged.AddListener(i => currentIdx = i);
+        if (fullscreenToggle) fullscreenToggle.onValueChanged.AddListener(_ => { });
+        if (qualityDropdown) qualityDropdown.onValueChanged.AddListener(i => QualitySettings.SetQualityLevel(i));
+        if (applyButton) applyButton.onClick.AddListener(ApplySettings);
+        if (resetButton) resetButton.onClick.AddListener(ResetSettings);
+        if (backButton) backButton.onClick.AddListener(ClosePanel);
     }
 
-    // ≈◊Ω∫∆ÆøÎ ∏ﬁº≠µÂ
-    public void TestMethod()
+    void OnVolumeChanged(float v)
     {
-        Debug.Log("≈◊Ω∫∆Æ ∏ﬁº≠µÂ∞° »£√‚µ«æ˙Ω¿¥œ¥Ÿ!");
-    }
-
-    public void OnFullscreenToggled(bool isFullscreen)
-    {
-        Debug.Log($"¿¸√º»≠∏È ≈‰±€ ∫Ø∞Ê: {isFullscreen}");
-    }
-
-    public void OnQualityChanged(int qualityIndex)
-    {
-        if (qualityIndex >= 0 && qualityIndex < QualitySettings.names.Length)
-        {
-            QualitySettings.SetQualityLevel(qualityIndex);
-            Debug.Log($"«∞¡˙ º≥¡§¿Ã ¡ÔΩ√ ∫Ø∞Êµ«æ˙Ω¿¥œ¥Ÿ: {QualitySettings.names[qualityIndex]}");
-        }
+        AudioListener.volume = v;
+        if (volumeText) volumeText.text = $"{Mathf.RoundToInt(v * 100)}%";
     }
 
     void ApplySettings()
     {
-        // º≥¡§ ¿˙¿Â
-        if (volumeSlider != null)
-            PlayerPrefs.SetFloat("MasterVolume", volumeSlider.value);
+        if (volumeSlider) PlayerPrefs.SetFloat("MasterVolume", volumeSlider.value);
+        if (resolutionDropdown) PlayerPrefs.SetInt("ResolutionIndex", currentIdx);
+        if (fullscreenToggle) PlayerPrefs.SetInt("Fullscreen", fullscreenToggle.isOn ? 1 : 0);
+        if (qualityDropdown) PlayerPrefs.SetInt("QualityLevel", qualityDropdown.value);
 
-        if (resolutionDropdown != null)
-            PlayerPrefs.SetInt("ResolutionIndex", resolutionDropdown.value);
+        bool fs = fullscreenToggle ? fullscreenToggle.isOn : Screen.fullScreen;
 
-        if (fullscreenToggle != null)
-            PlayerPrefs.SetInt("Fullscreen", fullscreenToggle.isOn ? 1 : 0);
-
-        if (qualityDropdown != null)
-            PlayerPrefs.SetInt("QualityLevel", qualityDropdown.value);
-
-        // «ÿªÛµµ π◊ ¿¸√º»≠∏È ¿˚øÎ
-        if (resolutionDropdown != null && fullscreenToggle != null)
+        if (resolutions != null && currentIdx >= 0 && currentIdx < resolutions.Length)
         {
-            int selectedIndex = resolutionDropdown.value;
-            if (selectedIndex >= 0 && selectedIndex < resolutions.Length)
-            {
-                Resolution selectedResolution = resolutions[selectedIndex];
-                Screen.SetResolution(selectedResolution.width, selectedResolution.height, fullscreenToggle.isOn);
-                Debug.Log($"«ÿªÛµµ ¿˚øÎ: {selectedResolution.width} x {selectedResolution.height}, ¿¸√º»≠∏È: {fullscreenToggle.isOn}");
-            }
+            var r = resolutions[currentIdx];
+            Screen.SetResolution(r.width, r.height, fs);
         }
-
+        else
+        {
+            Screen.fullScreen = fs; // ÏµúÏÜå Î∞òÏòÅ
+        }
         PlayerPrefs.Save();
-
-        Debug.Log("Settings Applied!");
-        ShowAppliedMessage();
     }
 
     void ResetSettings()
     {
-        // ±‚∫ª∞™¿∏∑Œ ∏Æº¬
-        if (volumeSlider != null)
-        {
-            volumeSlider.value = 0.8f;
-            AudioListener.volume = 0.8f;
-            UpdateVolumeText(0.8f);
-        }
+        float defV = 0.8f;
+        if (volumeSlider) { volumeSlider.SetValueWithoutNotify(defV); OnVolumeChanged(defV); }
 
-        if (resolutionDropdown != null)
+        if (resolutionDropdown && resolutions != null && resolutions.Length > 0)
         {
-            resolutionDropdown.value = currentResolutionIndex;
+            resolutionDropdown.value = currentIdx;
             resolutionDropdown.RefreshShownValue();
         }
 
-        if (fullscreenToggle != null)
-        {
-            fullscreenToggle.isOn = true;
-        }
+        if (fullscreenToggle) fullscreenToggle.SetIsOnWithoutNotify(true);
 
-        if (qualityDropdown != null)
+        if (qualityDropdown)
         {
-            int defaultQuality = QualitySettings.GetQualityLevel();
-            qualityDropdown.value = defaultQuality;
+            int q = QualitySettings.GetQualityLevel();
+            qualityDropdown.value = q;
             qualityDropdown.RefreshShownValue();
         }
-
-        Debug.Log("Settings Reset!");
     }
 
-    void BackToMenu()
+    void ClosePanel()
     {
-        Debug.Log("BackToMenu »£√‚µ  - ø…º« ∆–≥Œ ∫Ò»∞º∫»≠");
-
-        // ƒ⁄∑Á∆æ¿ª ªÁøÎ«œø© ¥Ÿ¿Ω «¡∑π¿”ø° ∆–≥Œ ∫Ò»∞º∫»≠
-        StartCoroutine(DeactivatePanelNextFrame());
-    }
-
-    IEnumerator DeactivatePanelNextFrame()
-    {
-        // «— «¡∑π¿” ¥Î±‚
-        yield return null;
-
-        // πˆ∆∞ ªÛ≈¬ √ ±‚»≠ (¡ﬂø‰!)
-        ResetButtonStates();
-
-        // πÊπ˝ 1: ¡˜¡¢ ¬¸¡∂µ» ø…º« ∆–≥Œ ∫Ò»∞º∫»≠
-        if (optionsPanel != null)
+        // Ìå®ÎÑêÏùÑ ÏïåÌååÎ°ú Ïà®Í∏∞Í≥† ÏûÖÎ†• Ï∞®Îã®
+        if (optionsPanel)
         {
-            optionsPanel.SetActive(false);
-        }
-        else
-        {
-            // πÊπ˝ 2: ≈¬±◊∑Œ √£±‚
-            GameObject optionsPanel = GameObject.FindGameObjectWithTag("OptionsPanel");
-            if (optionsPanel != null)
+            var cg = optionsPanel.GetComponent<CanvasGroup>();
+            if (cg)
             {
-                optionsPanel.SetActive(false);
+                cg.interactable = false;
+                cg.blocksRaycasts = false;
+                cg.alpha = 0f;
             }
-            else
-            {
-                // πÊπ˝ 3: ¿Ã∏ß¿∏∑Œ √£±‚
-                GameObject optionsPanelByName = GameObject.Find("OptionsPanel");
-                if (optionsPanelByName != null)
-                {
-                    optionsPanelByName.SetActive(false);
-                }
-                else
-                {
-                    Debug.LogWarning("OptionsPanel¿ª √£¿ª ºˆ æ¯Ω¿¥œ¥Ÿ!");
-                }
-            }
+            optionsPanel.SetActive(true); // SetActive Off ÏÇ¨Ïö© Ïïà Ìï®(Ìè¨Ïª§Ïä§ Íº¨ÏûÑ Î∞©ÏßÄ)
         }
-    }
 
+        // ‚úÖ Unity 6 Ïã† API: Ïî¨ ÎÇ¥ Î≤ÑÌäº ÏàòÏßë
+        Button[] bs = optionsPanel
+            ? optionsPanel.GetComponentsInChildren<Button>(true)
+            : Object.FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None);
 
-void ResetButtonStates()
-{
-    // ∏µÁ πˆ∆∞¿« ªÛ≈¬∏¶ √ ±‚»≠
-    Button[] allButtons = optionsPanel != null ?
-        optionsPanel.GetComponentsInChildren<Button>() :
-        FindObjectsByType<Button>();
-
-    foreach (Button button in allButtons)
-    {
-        if (button != null)
+        foreach (var b in bs)
         {
-            // πˆ∆∞¿ª ¥ŸΩ√ »∞º∫»≠
-            button.interactable = true;
-
-            // º±≈√ ªÛ≈¬ «ÿ¡¶: «ˆ¿Á º±≈√µ» πˆ∆∞∞˙ ∞∞¥Ÿ∏È º±≈√ «ÿ¡¶
-            if (EventSystem.current.currentSelectedGameObject == button.gameObject)
-            {
+            if (!b) continue;
+            b.interactable = true;
+            if (EventSystem.current && EventSystem.current.currentSelectedGameObject == b.gameObject)
                 EventSystem.current.SetSelectedGameObject(null);
-            }
         }
-    }
-
-    // EventSystem¿« «ˆ¿Á º±≈√µ» ∞¥√º √ ±‚»≠
-    EventSystem.current.SetSelectedGameObject(null);
-}
-
-    private T[] FindObjectsByType<T>()
-    {
-        throw new NotImplementedException();
-    }
-
-    void ShowAppliedMessage()
-    {
-        // º≥¡§ ¿˚øÎ øœ∑· ∏ﬁΩ√¡ˆ «•Ω√
-        Debug.Log("Settings have been applied successfully!");
-    }
-
-    void OnDestroy()
-    {
-        // ¿Ã∫•∆Æ ∏ÆΩ∫≥  ¡¶∞≈
-        if (volumeSlider != null)
-            volumeSlider.onValueChanged.RemoveListener(OnVolumeChanged);
-        if (resolutionDropdown != null)
-            resolutionDropdown.onValueChanged.RemoveListener(OnResolutionChanged);
-        if (fullscreenToggle != null)
-            fullscreenToggle.onValueChanged.RemoveListener(OnFullscreenToggled);
-        if (qualityDropdown != null)
-            qualityDropdown.onValueChanged.RemoveListener(OnQualityChanged);
-
-        if (applyButton != null)
-            applyButton.onClick.RemoveListener(ApplySettings);
-        if (resetButton != null)
-            resetButton.onClick.RemoveListener(ResetSettings);
-        if (backButton != null)
-            backButton.onClick.RemoveListener(BackToMenu);
+        if (EventSystem.current) EventSystem.current.SetSelectedGameObject(null);
     }
 }
