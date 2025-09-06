@@ -292,6 +292,11 @@ Camera:
   m_CorrespondingSourceObject: {fileID: 20437472682476688, guid: 11aaea5348574644a9eb4f4504fcce3f, type: 3}
   m_PrefabInstance: {fileID: 68494945}
   m_PrefabAsset: {fileID: 0}
+--- !u!4 &68494948 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4207293392497186, guid: 11aaea5348574644a9eb4f4504fcce3f, type: 3}
+  m_PrefabInstance: {fileID: 68494945}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &68494951
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -705,18 +710,55 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 288300b310bedd245a1a3453db92bb2d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  player: {fileID: 68494948}
   allLights:
   - {fileID: 1595901599}
   - {fileID: 1482330985}
   - {fileID: 850126583}
-  lightFailureChance: 0.001
-  powerOutageDuration: 10
-  ambientSound: {fileID: 0}
-  creepySounds: []
-  soundTriggerChance: 0.0005
-  postProcessVolume: {fileID: 0}
-  fogMaterial: {fileID: 0}
+  postProcessVolume: {fileID: 2106134800}
+  horrorLevel: 0.5
+  meanBrownoutInterval: 60
+  brownoutHold: 3
+  brownoutCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  perlinSpeedRange: {x: 0.5, y: 2.5}
+  perlinAmpRange: {x: 0.2, y: 0.6}
+  ambientLoop: {fileID: 84306118}
+  creepyOneShots: []
+  meanCreepyInterval: 35
+  minCreepyDistance: 6
+  maxCreepyDistance: 15
+  occlusionMask:
+    serializedVersion: 2
+    m_Bits: 0
   dustParticles: {fileID: 0}
+  baseFogDensity: 0.01
+  fogJitterAmp: 0.006
+  fogJitterSpeed: 0.2
+  stress: 0
+  stressDecayPerSec: 0.05
 --- !u!4 &159854506
 Transform:
   m_ObjectHideFlags: 0
