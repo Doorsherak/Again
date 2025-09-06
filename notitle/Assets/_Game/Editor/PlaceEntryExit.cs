@@ -1,6 +1,13 @@
 using UnityEngine;
 using UnityEditor;
 
+// Ensure the Segment class is defined or referenced
+public class Segment : MonoBehaviour
+{
+    public Transform entry;
+    public Transform exit;
+}
+
 public static class PlaceEntryExit
 {
     [MenuItem("Tools/Level/Add Entry & Exit (centered)")]
