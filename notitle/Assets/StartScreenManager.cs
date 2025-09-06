@@ -96,7 +96,7 @@ public class StartScreenManager_Safe : MonoBehaviour
 
     public void StartGame()
     {
-        StartCoroutine(CoLoadScene());
+        StartCoroutine(ScreenFader.FadeAndLoad(sceneName, 0.9f, 0.9f)); // ¢º ¿©±â
     }
     IEnumerator CoLoadScene()
     {
