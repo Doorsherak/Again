@@ -1,16 +1,16 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
-using System.Collections.Generic;
 using UnityEngine.EventSystems;
+using TMPro;
 
 public class GameOptionsManager : MonoBehaviour
 {
     [Header("Audio")]
     [SerializeField] Slider volumeSlider;
-    [SerializeField] TextMeshProUGUI volumeText;
+    [SerializeField] TextMeshProUGUI volumeText; // "80%" 같은 표시(없으면 비워둬도 됨)
 
-    [Header("Resolution")]
+    [Header("Resolution / Fullscreen")]
     [SerializeField] TMP_Dropdown resolutionDropdown;
     [SerializeField] Toggle fullscreenToggle;
 
@@ -18,13 +18,22 @@ public class GameOptionsManager : MonoBehaviour
     [SerializeField] TMP_Dropdown qualityDropdown;
 
     [Header("Buttons")]
-    [SerializeField] Button applyButton, resetButton, backButton;
+    [SerializeField] Button applyButton;
+    [SerializeField] Button resetButton;
+    [SerializeField] Button backButton;
 
-    [Header("Panel")]
-    [SerializeField] GameObject optionsPanel; // CanvasGroup 권장
+    [Header("Panel (선택)")]
+    [SerializeField] GameObject optionsPanel; // CanvasGroup 사용 권장
 
-    Resolution[] resolutions;
-    int currentIdx;
+    // 내부 상태
+    List<Resolution> resList = new List<Resolution>(); // 드롭다운과 1:1 매핑
+    int currentIdx = 0;
+
+    // 테스트 시 전환이 눈에 보이도록(완성 단계에서는 false 권장)
+    [SerializeField] bool useExclusiveFullScreenForTesting = true;
+
+    // 연속 적용 방지용
+    Coroutine applyRoutine;
 
     void Start()
     {
@@ -34,70 +43,81 @@ public class GameOptionsManager : MonoBehaviour
         HookEvents();
     }
 
+    // --- 해상도 목록 구성(중복 제거) ---
     void InitResolutions()
     {
-        if (!resolutionDropdown) { Debug.LogWarning("[Options] resolutionDropdown 미지정"); return; }
+        if (!resolutionDropdown) return;
 
-        var all = Screen.resolutions;
-        var seen = new HashSet<string>();
+        resList.Clear();
         var labels = new List<string>();
-        var filtered = new List<Resolution>();
+        var seen = new HashSet<string>();
 
         int wNow = Screen.width, hNow = Screen.height;
-        currentIdx = 0;
 
-        foreach (var r in all)
+        foreach (var r in Screen.resolutions)
         {
-            string key = $"{r.width}x{r.height}";
+#if UNITY_6000_0_OR_NEWER || UNITY_2022_2_OR_NEWER
+            var rr = r.refreshRateRatio; // RefreshRate(분수)
+            int hz = Mathf.RoundToInt((float)rr.numerator / rr.denominator);
+#else
+            int hz = r.refreshRate;
+#endif
+            string key = $"{r.width}x{r.height}@{hz}";
             if (seen.Add(key))
             {
-                filtered.Add(r);
-                labels.Add(key);
-                if (r.width == wNow && r.height == hNow) currentIdx = filtered.Count - 1;
+                resList.Add(r);
+                labels.Add($"{r.width}×{r.height}  {hz}Hz");
+                if (r.width == wNow && r.height == hNow) currentIdx = resList.Count - 1;
             }
         }
-        resolutions = filtered.ToArray();
 
         resolutionDropdown.ClearOptions();
         resolutionDropdown.AddOptions(labels);
-        resolutionDropdown.value = Mathf.Clamp(currentIdx, 0, labels.Count > 0 ? labels.Count - 1 : 0);
+        resolutionDropdown.SetValueWithoutNotify(Mathf.Clamp(currentIdx, 0, Mathf.Max(0, resList.Count - 1)));
         resolutionDropdown.RefreshShownValue();
+
+        // 드롭다운 선택 시 인덱스 갱신
+        resolutionDropdown.onValueChanged.AddListener(i => currentIdx = i);
     }
 
     void InitQuality()
     {
         if (!qualityDropdown) return;
         qualityDropdown.ClearOptions();
-        var names = new List<string>(QualitySettings.names);
-        qualityDropdown.AddOptions(names);
+        qualityDropdown.AddOptions(new List<string>(QualitySettings.names));
         qualityDropdown.value = QualitySettings.GetQualityLevel();
         qualityDropdown.RefreshShownValue();
     }
 
     void LoadSettings()
     {
+        // 볼륨
         float vol = PlayerPrefs.GetFloat("MasterVolume", 0.8f);
         if (volumeSlider) volumeSlider.SetValueWithoutNotify(vol);
         if (volumeText) volumeText.text = $"{Mathf.RoundToInt(vol * 100)}%";
         AudioListener.volume = vol;
 
-        if (resolutionDropdown && resolutions != null && resolutions.Length > 0)
+        // 해상도 인덱스
+        if (resolutionDropdown && resList.Count > 0)
         {
-            int idx = Mathf.Clamp(PlayerPrefs.GetInt("ResolutionIndex", currentIdx), 0, resolutions.Length - 1);
-            currentIdx = idx;
-            resolutionDropdown.value = currentIdx;
+            int savedIdx = Mathf.Clamp(PlayerPrefs.GetInt("ResolutionIndex", currentIdx), 0, resList.Count - 1);
+            currentIdx = savedIdx;
+            resolutionDropdown.SetValueWithoutNotify(currentIdx);
             resolutionDropdown.RefreshShownValue();
         }
 
+        // 전체화면
         if (fullscreenToggle)
         {
             bool fs = PlayerPrefs.GetInt("Fullscreen", Screen.fullScreen ? 1 : 0) == 1;
             fullscreenToggle.SetIsOnWithoutNotify(fs);
         }
 
+        // 품질
         if (qualityDropdown)
         {
-            int q = Mathf.Clamp(PlayerPrefs.GetInt("QualityLevel", QualitySettings.GetQualityLevel()), 0, QualitySettings.names.Length - 1);
+            int q = Mathf.Clamp(PlayerPrefs.GetInt("QualityLevel", QualitySettings.GetQualityLevel()),
+                                0, QualitySettings.names.Length - 1);
             qualityDropdown.value = q;
             qualityDropdown.RefreshShownValue();
             QualitySettings.SetQualityLevel(q);
@@ -106,13 +126,40 @@ public class GameOptionsManager : MonoBehaviour
 
     void HookEvents()
     {
-        if (volumeSlider) volumeSlider.onValueChanged.AddListener(OnVolumeChanged);
-        if (resolutionDropdown) resolutionDropdown.onValueChanged.AddListener(i => currentIdx = i);
-        if (fullscreenToggle) fullscreenToggle.onValueChanged.AddListener(_ => { });
-        if (qualityDropdown) qualityDropdown.onValueChanged.AddListener(i => QualitySettings.SetQualityLevel(i));
-        if (applyButton) applyButton.onClick.AddListener(ApplySettings);
-        if (resetButton) resetButton.onClick.AddListener(ResetSettings);
-        if (backButton) backButton.onClick.AddListener(ClosePanel);
+        if (volumeSlider)
+        {
+            volumeSlider.onValueChanged.RemoveListener(OnVolumeChanged);
+            volumeSlider.onValueChanged.AddListener(OnVolumeChanged);
+        }
+        if (qualityDropdown)
+        {
+            // Start에서 한 번만 등록되므로 Remove는 생략
+            qualityDropdown.onValueChanged.AddListener(i => QualitySettings.SetQualityLevel(i));
+        }
+        if (applyButton)
+        {
+            applyButton.onClick.RemoveListener(ApplySettings);
+            applyButton.onClick.AddListener(ApplySettings);
+        }
+        if (resetButton)
+        {
+            resetButton.onClick.RemoveListener(ResetSettings);
+            resetButton.onClick.AddListener(ResetSettings);
+        }
+        if (backButton)
+        {
+            backButton.onClick.RemoveListener(ClosePanel);
+            backButton.onClick.AddListener(ClosePanel);
+        }
+    }
+
+    void OnDestroy()
+    {
+        // 씬 전환 시 중복 바인딩 누적 방지
+        if (volumeSlider) volumeSlider.onValueChanged.RemoveListener(OnVolumeChanged);
+        if (applyButton) applyButton.onClick.RemoveListener(ApplySettings);
+        if (resetButton) resetButton.onClick.RemoveListener(ResetSettings);
+        if (backButton) backButton.onClick.RemoveListener(ClosePanel);
     }
 
     void OnVolumeChanged(float v)
@@ -121,40 +168,48 @@ public class GameOptionsManager : MonoBehaviour
         if (volumeText) volumeText.text = $"{Mathf.RoundToInt(v * 100)}%";
     }
 
-    void ApplySettings()
+    // === 적용 ===
+    public void ApplySettings()
     {
+        // --- 저장(그대로 유지) ---
         if (volumeSlider) PlayerPrefs.SetFloat("MasterVolume", volumeSlider.value);
-        if (resolutionDropdown) PlayerPrefs.SetInt("ResolutionIndex", currentIdx);
+        if (resolutionDropdown) PlayerPrefs.SetInt("ResolutionIndex", Mathf.Clamp(currentIdx, 0, Mathf.Max(0, resList.Count - 1)));
         if (fullscreenToggle) PlayerPrefs.SetInt("Fullscreen", fullscreenToggle.isOn ? 1 : 0);
         if (qualityDropdown) PlayerPrefs.SetInt("QualityLevel", qualityDropdown.value);
-
-        bool fs = fullscreenToggle ? fullscreenToggle.isOn : Screen.fullScreen;
-
-        if (resolutions != null && currentIdx >= 0 && currentIdx < resolutions.Length)
-        {
-            var r = resolutions[currentIdx];
-            Screen.SetResolution(r.width, r.height, fs);
-        }
-        else
-        {
-            Screen.fullScreen = fs; // 최소 반영
-        }
         PlayerPrefs.Save();
+
+        // 즉시 반영되는 것들(볼륨/품질)
+        if (volumeSlider) AudioListener.volume = volumeSlider.value;
+        if (qualityDropdown) QualitySettings.SetQualityLevel(qualityDropdown.value);
+
+        // --- 해상도·전체화면은 다음 프레임에 적용 ---
+        bool fsOn = fullscreenToggle ? fullscreenToggle.isOn : Screen.fullScreen;
+
+        if (applyRoutine != null) StopCoroutine(applyRoutine);
+        applyRoutine = StartCoroutine(ApplyResolutionCo(fsOn));
     }
 
-    void ResetSettings()
+    // === 초기값 ===
+    public void ResetSettings()
     {
+        // 볼륨
         float defV = 0.8f;
         if (volumeSlider) { volumeSlider.SetValueWithoutNotify(defV); OnVolumeChanged(defV); }
 
-        if (resolutionDropdown && resolutions != null && resolutions.Length > 0)
+        // 해상도: 현재 모니터 기본에 맞춤
+        if (resolutionDropdown && resList.Count > 0)
         {
-            resolutionDropdown.value = currentIdx;
+            int cur = resList.FindIndex(r => r.width == Screen.currentResolution.width && r.height == Screen.currentResolution.height);
+            if (cur < 0) cur = resList.FindIndex(r => r.width == Screen.width && r.height == Screen.height);
+            currentIdx = Mathf.Clamp(cur, 0, resList.Count - 1);
+            resolutionDropdown.SetValueWithoutNotify(currentIdx);
             resolutionDropdown.RefreshShownValue();
         }
 
+        // 전체화면 ON
         if (fullscreenToggle) fullscreenToggle.SetIsOnWithoutNotify(true);
 
+        // 품질: 현재 값 유지
         if (qualityDropdown)
         {
             int q = QualitySettings.GetQualityLevel();
@@ -163,33 +218,67 @@ public class GameOptionsManager : MonoBehaviour
         }
     }
 
-    void ClosePanel()
+    // === 패널 닫기(선택) ===
+    public void ClosePanel()
     {
-        // 패널을 알파로 숨기고 입력 차단
-        if (optionsPanel)
+        if (!optionsPanel) return;
+
+        var cg = optionsPanel.GetComponent<CanvasGroup>();
+        if (cg)
         {
-            var cg = optionsPanel.GetComponent<CanvasGroup>();
-            if (cg)
-            {
-                cg.interactable = false;
-                cg.blocksRaycasts = false;
-                cg.alpha = 0f;
-            }
-            optionsPanel.SetActive(true); // SetActive Off 사용 안 함(포커스 꼬임 방지)
+            cg.interactable = false;
+            cg.blocksRaycasts = false;
+            cg.alpha = 0f;
+            optionsPanel.SetActive(true); // SetActive(false) 지양(포커스 꼬임 방지)
+        }
+        else
+        {
+            // CanvasGroup이 없다면 임시로 SetActive 사용
+            optionsPanel.SetActive(false);
         }
 
-        // ✅ Unity 6 신 API: 씬 내 버튼 수집
-        Button[] bs = optionsPanel
-            ? optionsPanel.GetComponentsInChildren<Button>(true)
-            : Object.FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-
-        foreach (var b in bs)
-        {
-            if (!b) continue;
-            b.interactable = true;
-            if (EventSystem.current && EventSystem.current.currentSelectedGameObject == b.gameObject)
-                EventSystem.current.SetSelectedGameObject(null);
-        }
         if (EventSystem.current) EventSystem.current.SetSelectedGameObject(null);
+    }
+
+    // === 해상도/모드 적용 코루틴(프레임 분리 + 보정) ===
+    System.Collections.IEnumerator ApplyResolutionCo(bool fsOn)
+    {
+        if (resList == null || resList.Count == 0) yield break;
+        currentIdx = Mathf.Clamp(currentIdx, 0, resList.Count - 1);
+        var r = resList[currentIdx];
+
+        // 1) 모드 먼저
+        var targetMode = fsOn
+            ? (useExclusiveFullScreenForTesting ? FullScreenMode.ExclusiveFullScreen : FullScreenMode.FullScreenWindow)
+            : FullScreenMode.Windowed;
+        Screen.fullScreenMode = targetMode;
+
+        // 2) 한 프레임 대기
+        yield return new WaitForEndOfFrame();
+
+        // 3) 해상도 적용(새 API)
+#if UNITY_6000_0_OR_NEWER || UNITY_2022_2_OR_NEWER
+        var rr = r.refreshRateRatio; // RefreshRate(분수)
+        Screen.SetResolution(r.width, r.height, targetMode, rr);
+#else
+        Screen.SetResolution(r.width, r.height, targetMode, r.refreshRate);
+#endif
+
+        // 4) 또 한 프레임 대기 후 보정
+        yield return new WaitForEndOfFrame();
+        Screen.fullScreen = (targetMode != FullScreenMode.Windowed);
+
+        // 5) 드물게 씹히는 케이스 대비 0.1초 뒤 한 번 더
+        yield return new WaitForSecondsRealtime(0.1f);
+#if UNITY_6000_0_OR_NEWER || UNITY_2022_2_OR_NEWER
+        Screen.SetResolution(r.width, r.height, targetMode, rr);
+#else
+        Screen.SetResolution(r.width, r.height, targetMode, r.refreshRate);
+#endif
+
+        Debug.Log($"[Options] RES={Screen.width}x{Screen.height} MODE={Screen.fullScreenMode} FS={Screen.fullScreen}");
+        if (volumeText) volumeText.text = $"{Screen.width}×{Screen.height}";
+
+        applyRoutine = null;
     }
 }
