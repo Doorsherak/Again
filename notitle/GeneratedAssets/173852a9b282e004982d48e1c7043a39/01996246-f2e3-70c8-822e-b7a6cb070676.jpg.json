@@ -1,0 +1,20 @@
+{
+    "asset": "173852a9b282e004982d48e1c7043a39",
+    "fileName": "01996246-f2e3-70c8-822e-b7a6cb070676.jpg",
+    "prompt": "공포 테마에 적합한 UI 텍스처",
+    "negativePrompt": "",
+    "model": "94c4260f-b988-40e7-b3d3-435b9f449bd0",
+    "modelName": "Flux.1 Dev",
+    "customSeed": -1,
+    "w3CTraceId": "497b79d59e09242d12e6f5a4171e5fa9",
+    "refinementMode": "Generation",
+    "pixelateTargetSize": 0,
+    "pixelateKeepImageSize": false,
+    "pixelatePixelBlockSize": 0,
+    "pixelateMode": 0,
+    "pixelateOutlineThickness": 0,
+    "doodles": {
+        "m_Items": []
+    },
+    "upscaleFactor": 0
+}

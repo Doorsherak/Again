@@ -1,0 +1,20 @@
+{
+    "asset": "1002b5cf175a90a48a31dd093b5625f8",
+    "fileName": "01996246-f354-742f-9b18-14e3094e76d3.jpg",
+    "prompt": "공포 분위기의 UI 요소에 적합한 스프라이트",
+    "negativePrompt": "",
+    "model": "94c4260f-b988-40e7-b3d3-435b9f449bd0",
+    "modelName": "Flux.1 Dev",
+    "customSeed": -1,
+    "w3CTraceId": "14371b72aedebdf07e5b1d86f33760c6",
+    "refinementMode": "Generation",
+    "pixelateTargetSize": 0,
+    "pixelateKeepImageSize": false,
+    "pixelatePixelBlockSize": 0,
+    "pixelateMode": 0,
+    "pixelateOutlineThickness": 0,
+    "doodles": {
+        "m_Items": []
+    },
+    "upscaleFactor": 0
+}
