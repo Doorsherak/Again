@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 50f2684e83f65934281fcb62db95d3ed
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 232972
+  packageName: MicroVerse
+  packageVersion: 1.7.42
+  assetPath: Packages/com.jbooth.microverse/Data/Synty_MeadowForest/Prefabs/Vegetation/Wildflower
+    Clusters.prefab
+  uploadId: 786486

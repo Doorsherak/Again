@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 05533f59ed15148a49f42774b5b70266
+ComputeShaderImporter:
+  externalObjects: {}
+  preprocessorOverride: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 232972
+  packageName: MicroVerse
+  packageVersion: 1.7.42
+  assetPath: Packages/com.jbooth.microverse/Scripts/Editor/Resources/MicroVerseRasterToMega.compute
+  uploadId: 786486

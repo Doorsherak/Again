@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: a07c51fbcc1eb4edc8906ecccc35e36c
+ShaderIncludeImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 232972
+  packageName: MicroVerse
+  packageVersion: 1.7.42
+  assetPath: Packages/com.jbooth.microverse/Scripts/Shaders/Noise.cginc
+  uploadId: 786486

@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 27f45a11509bd4aff94f81375c315fa1
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 232972
+  packageName: MicroVerse
+  packageVersion: 1.7.42
+  assetPath: Packages/com.jbooth.microverse/Scripts/Shaders/PreviewNoise.shader
+  uploadId: 786486

@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: e0515ffca935241289cf2dd9aa6857b6
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 232972
+  packageName: MicroVerse
+  packageVersion: 1.7.42
+  assetPath: Packages/com.jbooth.microverse/Scripts/Shaders/Stamps/PasteSplat.shader
+  uploadId: 786486

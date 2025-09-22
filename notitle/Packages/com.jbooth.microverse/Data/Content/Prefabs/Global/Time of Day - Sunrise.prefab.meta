@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 26ecb5de267412141ac619458db05ce4
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 232972
+  packageName: MicroVerse
+  packageVersion: 1.7.42
+  assetPath: Packages/com.jbooth.microverse/Data/Content/Prefabs/Global/Time of Day
+    - Sunrise.prefab
+  uploadId: 786486

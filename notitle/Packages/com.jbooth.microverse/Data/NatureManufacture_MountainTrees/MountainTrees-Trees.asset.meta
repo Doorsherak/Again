@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 36b81929726755249b69fa6f79bed2bd
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 232972
+  packageName: MicroVerse
+  packageVersion: 1.7.42
+  assetPath: Packages/com.jbooth.microverse/Data/NatureManufacture_MountainTrees/MountainTrees-Trees.asset
+  uploadId: 786486

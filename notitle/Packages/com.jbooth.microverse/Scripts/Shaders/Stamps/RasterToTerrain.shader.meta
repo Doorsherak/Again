@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 6bc10485becbd4f2c9fe89d83e5b1d00
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 232972
+  packageName: MicroVerse
+  packageVersion: 1.7.42
+  assetPath: Packages/com.jbooth.microverse/Scripts/Shaders/Stamps/RasterToTerrain.shader
+  uploadId: 786486

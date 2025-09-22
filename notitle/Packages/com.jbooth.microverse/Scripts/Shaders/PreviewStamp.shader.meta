@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: d7c8080d2840645888f758332834a6e0
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 232972
+  packageName: MicroVerse
+  packageVersion: 1.7.42
+  assetPath: Packages/com.jbooth.microverse/Scripts/Shaders/PreviewStamp.shader
+  uploadId: 786486

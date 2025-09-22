@@ -1,0 +1,10 @@
+﻿fileFormatVersion: 2
+guid: 4935d5bb54d0463cb273460c5877f41b
+timeCreated: 1642779090
+AssetOrigin:
+  serializedVersion: 1
+  productId: 232972
+  packageName: MicroVerse
+  packageVersion: 1.7.42
+  assetPath: Packages/com.jbooth.microverse/Scripts/Shaders/Stamps/HeightmapStamp.shader
+  uploadId: 786486

@@ -1,0 +1,27 @@
+
+
+#pragma kernel CSMain
+
+Texture2D<float4> _IndexMap;
+Texture2D<float4> _WeightMap;
+RWTexture2D<float4> _Result0;
+
+[numthreads(8,8,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    float4 indexes = _IndexMap[id.xy];
+    float4 weights = _WeightMap[id.xy];
+
+    // normalize weights
+
+    float total = weights.x + weights.y;
+    if (total <= 0)
+    {
+        weights = float4(0.25,0,0,0);
+    }
+    else
+    {
+        weights /= total;
+    }
+    _Result0[id.xy] = float4(indexes.x, indexes.y, 1.0 - weights.x, 1.0);
+}
