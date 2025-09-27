@@ -1,168 +1,340 @@
+ï»¿/* =========================  PauseManager.cs  =========================
+ * Unity 6/2023+ í˜¸í™˜. ë©”ë‰´ ì”¬ ë°°ì—´ ì§€ì›, ì»¤ì„œ ì •ì±… ì¼ì›í™”,
+ * EventSystem ì§€ì—°-ë‹¨ì¼ ìƒì„± ê°€ë“œ, Fallback UI(í°íŠ¸ ë¶„ê¸°/Dim í´ë¦­ í†µê³¼) í¬í•¨.
+ */
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+using UnityEngine.Serialization; // FormerlySerializedAs
 #if ENABLE_INPUT_SYSTEM
-using UnityEngine.InputSystem; // »õ ÀÔ·Â ½Ã½ºÅÛ
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.UI;
 #endif
 
 public class PauseManager : MonoBehaviour
 {
+    // ---------- References ----------
     [Header("References")]
-    [SerializeField] GameObject pauseRoot;          // UI_PauseRoot (inactive on start)
-    [SerializeField] GameObject firstSelected;      // Btn_Pause_Resume
-    [SerializeField] CanvasGroup fadeGroup;         // ¼±ÅÃ: ÆäÀÌµå¿ë(¾ø¾îµµ µÊ)
+    [SerializeField] public GameObject pauseRoot;       // UI_PauseRoot
+    [SerializeField] public GameObject firstSelected;   // Btn_Pause_Resume
+    [SerializeField] public CanvasGroup fadeGroup;
 
+    // ---------- Options ----------
     [Header("Options")]
-    [SerializeField] string titleSceneName = "StartScreen";
-    [SerializeField] bool lockCursorOnResume = true;
+    // v3 ë‹¨ì¼ ë©”ë‰´ ì”¬ â†’ ë°°ì—´ë¡œ ì´ê´€
+    [FormerlySerializedAs("titleSceneName")]
+    [SerializeField] string legacySingleMenuSceneName = "StartScreen";
+
     [SerializeField] bool useFade = true;
     [SerializeField, Range(0.05f, 0.6f)] float fadeDuration = 0.2f;
 
-    public bool IsPaused { get; private set; }
+    // ---------- Resilience ----------
+    [Header("Resilience")]
+    [SerializeField] bool makePersistent = false;          // DontDestroyOnLoad
+    [SerializeField] bool autoFindReferences = true;       // ì´ë¦„ìœ¼ë¡œ ì¬ê²°ì„ 
+    [SerializeField] bool autoBuildFallbackUI = true;      // ì—†ìœ¼ë©´ ì¦‰ì„ ìƒì„±
+    [SerializeField] string pauseRootName = "UI_PauseRoot";
+    [SerializeField] string firstSelectedName = "Btn_Pause_Resume";
+    [SerializeField] bool createEventSystemIfMissing = true;
+    [SerializeField] KeyCode legacyBackupKey = KeyCode.P;  // ESC ë³´ì¡°í‚¤
+    [SerializeField] bool logVerbose = true;
 
-    float baseFixedDelta;
-    GameObject lastSelected;
-    Coroutine fadeCo;
+    // ---------- Cursor & UI Safety ----------
+    [Header("Cursor Policy")]
+    [SerializeField] bool manageCursor = true;                 // ì»¤ì„œë¥¼ ì´ ìŠ¤í¬ë¦½íŠ¸ê°€ ê´€ë¦¬
+    [SerializeField] bool lockCursorOnlyInGameplay = true;     // ê²Œì„ ì”¬ì—ì„œë§Œ ì ê¸ˆ
+    [SerializeField] string[] menuSceneNames = new[] { "StartScreen" }; // ì—¬ëŸ¬ ë©”ë‰´ ì”¬
+
+    [Header("Input/UI Safety")]
+    [SerializeField] bool preferLegacyStandaloneModule = true; // ë¹ ë¥¸ ë³µêµ¬ìš©
+    [SerializeField] int overlaySortingOrder = 500;            // Pause Canvas Sorting
+
+    public bool IsPaused { get; private set; }
+    float baseFixedDelta; GameObject lastSelected; Coroutine fadeCo;
 
     void Awake()
     {
+        // v3 â†’ v4 ë§ˆì´ê·¸ë ˆì´ì…˜
+        if ((menuSceneNames == null || menuSceneNames.Length == 0) &&
+            !string.IsNullOrEmpty(legacySingleMenuSceneName))
+            menuSceneNames = new[] { legacySingleMenuSceneName };
+
+        if (makePersistent) DontDestroyOnLoad(gameObject);
         baseFixedDelta = Time.fixedDeltaTime;
+
+        if (createEventSystemIfMissing) StartCoroutine(EnsureEventSystemDeferred());
+
+        if (autoFindReferences) TryAutoWire("Awake");
+        if (autoBuildFallbackUI && pauseRoot == null) BuildFallbackUI();
+
         if (pauseRoot) pauseRoot.SetActive(false);
-        if (fadeGroup) { fadeGroup.alpha = 0f; fadeGroup.interactable = false; fadeGroup.blocksRaycasts = false; }
-        // ¾ÈÀüÀåÄ¡
-        Time.timeScale = 1f;
-        AudioListener.pause = false;
+        if (fadeGroup) { fadeGroup.alpha = 0; fadeGroup.interactable = false; fadeGroup.blocksRaycasts = false; }
+        Time.timeScale = 1f; AudioListener.pause = false;
+
+        SceneManager.sceneLoaded += OnSceneLoaded;
+        if (logVerbose) Dump("[Awake]");
+        ApplyCursorPolicy();
+    }
+
+    void OnDestroy()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+        Time.timeScale = 1f; Time.fixedDeltaTime = baseFixedDelta; AudioListener.pause = false;
+    }
+
+    void OnSceneLoaded(Scene s, LoadSceneMode m)
+    {
+        if (createEventSystemIfMissing) StartCoroutine(EnsureEventSystemDeferred());
+        if (autoFindReferences) TryAutoWire("sceneLoaded");
+        if (autoBuildFallbackUI && pauseRoot == null) BuildFallbackUI();
+        if (logVerbose) Dump("[sceneLoaded]");
+        ApplyCursorPolicy();
     }
 
     void Update()
     {
-        // Å°º¸µå/ÆĞµå·Î Åä±Û
-        bool pressed = false;
-#if ENABLE_INPUT_SYSTEM
-        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) pressed = true;
-        if (Gamepad.current != null && (Gamepad.current.startButton.wasPressedThisFrame || Gamepad.current.selectButton.wasPressedThisFrame)) pressed = true;
-#else
-        if (Input.GetKeyDown(KeyCode.Escape)) pressed = true;
-#endif
-        if (pressed) TogglePause();
+        if (IsPausePressed()) TogglePause();
     }
 
-    public void TogglePause()
+    bool IsPausePressed()
     {
-        if (IsPaused) Resume();
-        else Pause();
+#if ENABLE_INPUT_SYSTEM
+        var kb = Keyboard.current; var pad = Gamepad.current;
+        if (kb != null && kb.escapeKey.wasPressedThisFrame) return true;
+        if (pad != null && (pad.startButton.wasPressedThisFrame || pad.selectButton.wasPressedThisFrame)) return true;
+#endif
+        if (Input.GetKeyDown(KeyCode.Escape)) return true;
+        if (Input.GetKeyDown(legacyBackupKey)) return true;
+        return false;
     }
+
+    public void TogglePause() { if (IsPaused) Resume(); else Pause(); }
 
     public void Pause()
     {
         if (IsPaused) return;
         IsPaused = true;
+        Time.timeScale = 0f; Time.fixedDeltaTime = baseFixedDelta * 0f; AudioListener.pause = true;
 
-        // ½Ã°£/¿Àµğ¿À Á¤Áö
-        Time.timeScale = 0f;
-        Time.fixedDeltaTime = baseFixedDelta * Time.timeScale; // 0
-        AudioListener.pause = true;
+        if (!pauseRoot && autoBuildFallbackUI) BuildFallbackUI();
+        if (pauseRoot)
+        {
+            pauseRoot.SetActive(true);
+            if (fadeGroup && useFade) StartFade(1f, true); else SetCanvasInteractable(true);
+        }
+        else if (logVerbose) Debug.LogWarning("[Pause] pauseRoot ì—†ìŒâ€”ì‹œê°„ì€ ì •ì§€í•˜ì§€ë§Œ UIëŠ” ì—†ìŒ.");
 
-        // Ä¿¼­ ³ëÃâ
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-
-        // UI Ç¥½Ã
-        if (pauseRoot) pauseRoot.SetActive(true);
-        if (fadeGroup && useFade) StartFade(1f, true);
-        else SetCanvasInteractable(true);
-
-        // Æ÷Ä¿½º
         if (EventSystem.current)
         {
             lastSelected = EventSystem.current.currentSelectedGameObject;
             if (firstSelected) EventSystem.current.SetSelectedGameObject(firstSelected);
         }
+        ApplyCursorPolicy();
     }
 
     public void Resume()
     {
-        if (!IsPaused)
-        {
-            if (pauseRoot) pauseRoot.SetActive(false);
-            return;
-        }
+        if (!IsPaused) { if (pauseRoot) pauseRoot.SetActive(false); ApplyCursorPolicy(); return; }
         IsPaused = false;
+        Time.timeScale = 1f; Time.fixedDeltaTime = baseFixedDelta; AudioListener.pause = false;
 
-        // ½Ã°£/¿Àµğ¿À Àç°³
-        Time.timeScale = 1f;
-        Time.fixedDeltaTime = baseFixedDelta;
-        AudioListener.pause = false;
-
-        if (lockCursorOnResume)
+        if (pauseRoot)
         {
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
+            if (fadeGroup && useFade) StartFade(0f, false);
+            else { SetCanvasInteractable(false); pauseRoot.SetActive(false); }
         }
-
-        if (fadeGroup && useFade) StartFade(0f, false);
-        else
-        {
-            SetCanvasInteractable(false);
-            if (pauseRoot) pauseRoot.SetActive(false);
-        }
-
-        if (EventSystem.current && lastSelected)
-            EventSystem.current.SetSelectedGameObject(lastSelected);
-    }
-
-    void OnDestroy()
-    {
-        // ¾À ÀüÈ¯ ½Ã ²¿ÀÓ ¹æÁö
-        Time.timeScale = 1f;
-        Time.fixedDeltaTime = baseFixedDelta;
-        AudioListener.pause = false;
-    }
-
-    // UI ¹öÆ°¿ë ¸Ş¼­µå
-    public void BtnResume() => Resume();
-    public void BtnRestart() =>
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-    public void BtnQuitToTitle()
-    {
-        if (!string.IsNullOrEmpty(titleSceneName))
-            SceneManager.LoadScene(titleSceneName);
-    }
-
-    // --- ³»ºÎ À¯Æ¿ ---
-    void SetCanvasInteractable(bool on)
-    {
-        if (!fadeGroup) return;
-        fadeGroup.interactable = on;
-        fadeGroup.blocksRaycasts = on;
+        if (EventSystem.current && lastSelected) EventSystem.current.SetSelectedGameObject(lastSelected);
+        ApplyCursorPolicy();
     }
 
     void StartFade(float target, bool enableAtStart)
-    {
-        if (fadeCo != null) StopCoroutine(fadeCo);
-        fadeCo = StartCoroutine(FadeRoutine(target, enableAtStart));
-    }
+    { if (fadeCo != null) StopCoroutine(fadeCo); fadeCo = StartCoroutine(FadeRoutine(target, enableAtStart)); }
 
     System.Collections.IEnumerator FadeRoutine(float target, bool enableAtStart)
     {
-        if (enableAtStart) SetCanvasInteractable(true);
-        if (!fadeGroup) yield break;
-
-        float start = fadeGroup.alpha;
-        float t = 0f;
-        while (t < fadeDuration)
-        {
-            t += Time.unscaledDeltaTime; // ÀÏ½ÃÁ¤Áö µ¿¾È¿¡µµ ÁøÇà
-            fadeGroup.alpha = Mathf.Lerp(start, target, t / fadeDuration);
-            yield return null;
-        }
+        if (enableAtStart) SetCanvasInteractable(true); if (!fadeGroup) yield break;
+        float start = fadeGroup.alpha, t = 0;
+        while (t < fadeDuration) { t += Time.unscaledDeltaTime; fadeGroup.alpha = Mathf.Lerp(start, target, t / fadeDuration); yield return null; }
         fadeGroup.alpha = target;
-
-        if (Mathf.Approximately(target, 0f))
-        {
-            SetCanvasInteractable(false);
-            if (pauseRoot) pauseRoot.SetActive(false);
-        }
+        if (Mathf.Approximately(target, 0f)) { SetCanvasInteractable(false); if (pauseRoot) pauseRoot.SetActive(false); }
     }
-}
 
+    void SetCanvasInteractable(bool on)
+    { if (!fadeGroup) return; fadeGroup.interactable = on; fadeGroup.blocksRaycasts = on; }
+
+    // ---------- Cursor Policy ----------
+    bool IsMenuSceneName(string sceneName)
+    {
+        if (menuSceneNames == null) return false;
+        for (int i = 0; i < menuSceneNames.Length; i++)
+        {
+            var n = menuSceneNames[i];
+            if (!string.IsNullOrEmpty(n) &&
+                string.Equals(sceneName, n, System.StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
+    }
+
+    bool IsGameplayScene()
+        => !IsMenuSceneName(SceneManager.GetActiveScene().name);
+
+    public void ApplyCursorPolicy()
+    {
+        if (!manageCursor) return;
+
+        if (IsPaused) // ì •ì§€ ì¤‘ì—” í•­ìƒ ì»¤ì„œ ë³´ì„
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+            return;
+        }
+
+        // ë©”ë‰´ = ë³´ì„, ê²Œì„ = ì ê¸ˆ
+        if (lockCursorOnlyInGameplay && !IsGameplayScene())
+        { Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }
+        else
+        { Cursor.lockState = CursorLockMode.Locked; Cursor.visible = false; }
+    }
+
+    // ---------- Utilities ----------
+    void TryAutoWire(string tag)
+    {
+        if (!pauseRoot) { var go = GameObject.Find(pauseRootName); if (go) pauseRoot = go; }
+        if (!firstSelected) { var btn = GameObject.Find(firstSelectedName); if (btn) firstSelected = btn; }
+        if (!fadeGroup && pauseRoot) { fadeGroup = pauseRoot.GetComponent<CanvasGroup>(); }
+        if (logVerbose) Debug.Log($"[Pause]{tag} Wire â†’ UI={(pauseRoot ? pauseRoot.scene.path : "NULL")}, First={(firstSelected ? firstSelected.name : "NULL")}");
+    }
+
+    static bool _creatingES = false; // ë™ì‹œ ìƒì„± ê°€ë“œ
+
+    System.Collections.IEnumerator EnsureEventSystemDeferred()
+    {
+        if (_creatingES) yield break;
+        _creatingES = true;
+        yield return null; // í•œ í”„ë ˆì„ ëŒ€ê¸°: ì”¬ ì˜¤ë¸Œì íŠ¸ í™œì„±í™” ì™„ë£Œ í›„ ê²€ì‚¬
+
+#if UNITY_2023_1_OR_NEWER
+        var all = Object.FindObjectsByType<EventSystem>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+#else
+        var all = GameObject.FindObjectsOfType<EventSystem>(true);
+#endif
+        if (all.Length == 0)
+        {
+            var go = new GameObject("EventSystem");
+            go.AddComponent<EventSystem>();
+#if ENABLE_INPUT_SYSTEM
+            if (preferLegacyStandaloneModule) go.AddComponent<StandaloneInputModule>();
+            else go.AddComponent<InputSystemUIInputModule>();
+#else
+            go.AddComponent<StandaloneInputModule>();
+#endif
+            if (logVerbose) Debug.Log("[Pause] EventSystem ìë™ ìƒì„±(ì§€ì—°)");
+        }
+        else
+        {
+            for (int i = 1; i < all.Length; i++) Destroy(all[i].gameObject); // 1ê°œë§Œ ìœ ì§€
+        }
+        _creatingES = false;
+    }
+
+    void Dump(string tag)
+    {
+        var active = SceneManager.GetActiveScene().path;
+        var ui = pauseRoot ? pauseRoot.scene.path : "NULL";
+        Debug.Log($"[Pause]{tag} Active='{active}', UI='{ui}', IsPaused={IsPaused}");
+    }
+
+    [ContextMenu("Force Pause")] void ForcePauseCtx() => Pause();
+    [ContextMenu("Force Resume")] void ForceResumeCtx() => Resume();
+    void OnApplicationFocus(bool f) { if (f) ApplyCursorPolicy(); }
+
+    // ---------- Buttons ----------
+    public void BtnResume() => Resume();
+    public void BtnRestart() => SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+
+    string GetFirstMenuScene()
+    {
+        if (menuSceneNames != null)
+            for (int i = 0; i < menuSceneNames.Length; i++)
+                if (!string.IsNullOrEmpty(menuSceneNames[i])) return menuSceneNames[i];
+        return legacySingleMenuSceneName; // ìµœí›„ì˜ ë³´ë£¨
+    }
+    public void BtnQuitToTitle()
+    {
+        var menu = GetFirstMenuScene();
+        if (!string.IsNullOrEmpty(menu)) SceneManager.LoadScene(menu);
+    }
+
+    // ---------- Fallback UI ----------
+    void BuildFallbackUI()
+    {
+        // Canvas
+        var canvasGO = new GameObject("Canvas_UI_Runtime", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+        var canvas = canvasGO.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = overlaySortingOrder;
+        var scaler = canvasGO.GetComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920, 1080);
+        scaler.matchWidthOrHeight = 0.5f;
+
+        // Root
+        pauseRoot = new GameObject(pauseRootName, typeof(RectTransform), typeof(CanvasGroup));
+        pauseRoot.transform.SetParent(canvasGO.transform, false);
+        var rtRoot = (RectTransform)pauseRoot.transform; Stretch(rtRoot, 0, 0, 0, 0);
+        fadeGroup = pauseRoot.GetComponent<CanvasGroup>();
+        pauseRoot.SetActive(false);
+
+        // Dim (ë³´ì´ë˜ í´ë¦­ì€ ë§‰ì§€ ì•ŠìŒ)
+        var dim = new GameObject("UI_Pause_Dim", typeof(RectTransform), typeof(Image));
+        dim.transform.SetParent(pauseRoot.transform, false);
+        var rtDim = (RectTransform)dim.transform; Stretch(rtDim, 0, 0, 0, 0);
+        var imgDim = dim.GetComponent<Image>(); imgDim.color = new Color(0, 0, 0, 0.75f); imgDim.raycastTarget = false;
+        dim.transform.SetAsFirstSibling();
+
+        // Menu
+        var menu = new GameObject("UI_Pause_Menu", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
+        menu.transform.SetParent(pauseRoot.transform, false);
+        var rtMenu = (RectTransform)menu.transform; rtMenu.sizeDelta = new Vector2(400, 192); rtMenu.anchoredPosition = Vector2.zero;
+        var vlg = menu.GetComponent<VerticalLayoutGroup>();
+        vlg.childAlignment = TextAnchor.MiddleCenter; vlg.spacing = 20;
+        vlg.childControlWidth = vlg.childControlHeight = true;
+        vlg.childForceExpandWidth = false; vlg.childForceExpandHeight = false;
+        var csf = menu.GetComponent<ContentSizeFitter>(); csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        // Buttons
+        firstSelected = CreateButton(menu.transform, firstSelectedName, "ê³„ì†í•˜ê¸°", BtnResume);
+        CreateButton(menu.transform, "Btn_Pause_Restart", "ë‹¤ì‹œ ì‹œì‘", BtnRestart);
+        CreateButton(menu.transform, "Btn_Pause_MainMenu", "ë©”ì¸ ë©”ë‰´", BtnQuitToTitle);
+
+        if (logVerbose) Debug.Log("[Pause] Fallback UI ìƒì„± ì™„ë£Œ");
+    }
+
+    GameObject CreateButton(Transform parent, string name, string label, UnityEngine.Events.UnityAction onClick)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
+        go.transform.SetParent(parent, false);
+        var img = go.GetComponent<Image>(); img.type = Image.Type.Sliced; img.color = new Color(1, 1, 1, 1);
+        var btn = go.GetComponent<Button>(); btn.targetGraphic = img; btn.onClick.AddListener(onClick);
+
+        // Label(Text)
+        var tgo = new GameObject("Text", typeof(RectTransform), typeof(Text));
+        tgo.transform.SetParent(go.transform, false);
+        var txt = tgo.GetComponent<Text>();
+        txt.text = label; txt.alignment = TextAnchor.MiddleCenter; txt.fontSize = 24;
+#if UNITY_6000_0_OR_NEWER
+        txt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");   // Unity 6 ë‚´ì¥ í°íŠ¸
+#else
+        txt.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+#endif
+        var rt = (RectTransform)tgo.transform; Stretch(rt, 0, 0, 0, 0);
+
+        var le = go.AddComponent<LayoutElement>(); le.preferredHeight = 52;
+        return go;
+    }
+
+    static void Stretch(RectTransform rt, float l, float t, float r, float b)
+    { rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = new Vector2(l, b); rt.offsetMax = new Vector2(-r, -t); }
+}
