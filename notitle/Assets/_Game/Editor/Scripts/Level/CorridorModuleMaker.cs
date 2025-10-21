@@ -1,11 +1,13 @@
 #if UNITY_EDITOR
+using System.Net.Sockets;
+using log4net.Util;
 using UnityEditor;
 using UnityEngine;
 
 public class CorridorModule : MonoBehaviour
 {
-    public Transform socketIn;
-    public Transform socketOut;
+    public UnityEngine.Transform socketIn;
+    public UnityEngine.Transform socketOut;
     public float length = 4f; // +Z가 진행
     private void OnDrawGizmos()
     {
@@ -52,8 +54,8 @@ public static class CorridorModuleMaker
         float length = Mathf.Round((b.size.z) * 1000f) / 1000f; // 그대로 측정
         cm.length = length;
 
-        Transform sIn = new GameObject("Socket_In").transform;
-        Transform sOut = new GameObject("Socket_Out").transform;
+        UnityEngine.Transform sIn = new GameObject("Socket_In").transform;
+        UnityEngine.Transform sOut = new GameObject("Socket_Out").transform;
         sIn.SetParent(parent.transform, false);
         sOut.SetParent(parent.transform, false);
         sIn.localPosition = Vector3.zero;

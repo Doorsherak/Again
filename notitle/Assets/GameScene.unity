@@ -382,7 +382,8 @@ MonoBehaviour:
   breathingSource: {fileID: 1514464559}
   ambientSource: {fileID: 84306118}
   footstepSource: {fileID: 2124310365}
-  footstepClips: []
+  footstepClips:
+  - {fileID: 8300000, guid: f8c14f2814b4b124a894a65c32c44987, type: 3}
   flashlight: {fileID: 0}
   postProcessVolume: {fileID: 0}
   playerCamera: {fileID: 68494947}
@@ -2330,16 +2331,23 @@ MonoBehaviour:
   pauseRoot: {fileID: 490327826}
   firstSelected: {fileID: 490327825}
   fadeGroup: {fileID: 0}
-  titleSceneName: StartScreen
-  lockCursorOnResume: 1
+  legacySingleMenuSceneName: StartScreen
   useFade: 1
   fadeDuration: 0.2
+  makePersistent: 0
   autoFindReferences: 1
+  autoBuildFallbackUI: 1
   pauseRootName: UI_PauseRoot
   firstSelectedName: Btn_Pause_Resume
   createEventSystemIfMissing: 1
   legacyBackupKey: 112
   logVerbose: 1
+  manageCursor: 1
+  lockCursorOnlyInGameplay: 1
+  menuSceneNames:
+  - StartScreen
+  preferLegacyStandaloneModule: 1
+  overlaySortingOrder: 500
 --- !u!4 &788228394
 Transform:
   m_ObjectHideFlags: 0
