@@ -1883,9 +1883,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d891d3e27201ae04b940a86252fb78fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::CorridorModule
-  socketIn: {fileID: 0}
-  socketOut: {fileID: 0}
+  kind: 0
   length: 4
+  width: 3
+  height: 2.7
+  socketIn: {fileID: 574320639}
+  socketOut: {fileID: 574320638}
 --- !u!1001 &575833023
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2093,11 +2096,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e242844e5d45bfc48968c6d26d617bfd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::CorridorBuilder
-  straight: {fileID: 0}
-  turnL: {fileID: 0}
-  turnR: {fileID: 0}
-  door: {fileID: 0}
-  deadEnd: {fileID: 0}
+  straight: {fileID: 2977285818818463429}
+  turnL: {fileID: 3599206741184457075}
+  turnR: {fileID: 8412727755305679156}
+  door: {fileID: 574320640}
+  deadEnd: {fileID: 2047155377}
   layout: FFRFFLFFDFE
   clearBeforeBuild: 1
   buildOnAwake: 0
@@ -4541,9 +4544,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d891d3e27201ae04b940a86252fb78fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::CorridorModule
-  socketIn: {fileID: 0}
-  socketOut: {fileID: 0}
+  kind: 0
   length: 4
+  width: 3
+  height: 2.7
+  socketIn: {fileID: 2047155376}
+  socketOut: {fileID: 2047155375}
 --- !u!1001 &2063322721
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4947,9 +4953,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d891d3e27201ae04b940a86252fb78fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::CorridorModule
-  socketIn: {fileID: 0}
-  socketOut: {fileID: 0}
+  kind: 0
   length: 4
+  width: 3
+  height: 2.7
+  socketIn: {fileID: 2977285818818463427}
+  socketOut: {fileID: 2977285818818463426}
 --- !u!1001 &3599206741184457071
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5046,9 +5055,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d891d3e27201ae04b940a86252fb78fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::CorridorModule
-  socketIn: {fileID: 0}
-  socketOut: {fileID: 0}
+  kind: 0
   length: 4
+  width: 3
+  height: 2.7
+  socketIn: {fileID: 3599206741184457073}
+  socketOut: {fileID: 3599206741184457072}
 --- !u!1001 &8412727755305679152
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5145,9 +5157,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d891d3e27201ae04b940a86252fb78fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::CorridorModule
-  socketIn: {fileID: 0}
-  socketOut: {fileID: 0}
+  kind: 0
   length: 4
+  width: 3
+  height: 2.7
+  socketIn: {fileID: 8412727755305679154}
+  socketOut: {fileID: 8412727755305679153}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
