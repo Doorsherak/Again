@@ -1829,7 +1829,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d891d3e27201ae04b940a86252fb78fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::CorridorModule
-  kind: 0
+  kind: 3
   length: 4
   width: 3
   height: 2.7
@@ -2047,7 +2047,7 @@ MonoBehaviour:
   turnR: {fileID: 8412727755305679156}
   door: {fileID: 574320640}
   deadEnd: {fileID: 2047155377}
-  layout: FF
+  layout: RF
   clearBeforeBuild: 1
   buildOnAwake: 1
   joinBias: 0
@@ -2062,7 +2062,7 @@ Transform:
   m_GameObject: {fileID: 638662272}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 10, y: 0, z: -1}
+  m_LocalPosition: {x: 0, y: 0, z: -1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -4424,7 +4424,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d891d3e27201ae04b940a86252fb78fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::CorridorModule
-  kind: 0
+  kind: 4
   length: 4
   width: 3
   height: 2.7
@@ -4749,7 +4749,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5383749310023082336, guid: bf80d2de1b517c944bbdaaa74c854ba0, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 3.939966
+      value: 14.05
       objectReference: {fileID: 0}
     - target: {fileID: 5383749310023082336, guid: bf80d2de1b517c944bbdaaa74c854ba0, type: 3}
       propertyPath: m_LocalPosition.y
@@ -4757,7 +4757,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5383749310023082336, guid: bf80d2de1b517c944bbdaaa74c854ba0, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -1.0246
+      value: -19.94
       objectReference: {fileID: 0}
     - target: {fileID: 5383749310023082336, guid: bf80d2de1b517c944bbdaaa74c854ba0, type: 3}
       propertyPath: m_LocalRotation.w
@@ -4795,6 +4795,34 @@ PrefabInstance:
       propertyPath: socketOut
       value: 
       objectReference: {fileID: 2977285818818463426}
+    - target: {fileID: 7335951555399884681, guid: bf80d2de1b517c944bbdaaa74c854ba0, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7335951555399884681, guid: bf80d2de1b517c944bbdaaa74c854ba0, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 8364319110385125875, guid: bf80d2de1b517c944bbdaaa74c854ba0, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8364319110385125875, guid: bf80d2de1b517c944bbdaaa74c854ba0, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8364319110385125875, guid: bf80d2de1b517c944bbdaaa74c854ba0, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8364319110385125875, guid: bf80d2de1b517c944bbdaaa74c854ba0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8364319110385125875, guid: bf80d2de1b517c944bbdaaa74c854ba0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 7236647538568390098, guid: bf80d2de1b517c944bbdaaa74c854ba0, type: 3}
     m_RemovedGameObjects: []
@@ -4856,6 +4884,10 @@ PrefabInstance:
     - target: {fileID: 1667196694515702560, guid: 535c2e00df836914f9a09d37285c0381, type: 3}
       propertyPath: m_Name
       value: Corr_TurnL_4m
+      objectReference: {fileID: 0}
+    - target: {fileID: 5574843894286478853, guid: 535c2e00df836914f9a09d37285c0381, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.7071068
       objectReference: {fileID: 0}
     - target: {fileID: 6710221055911629410, guid: 535c2e00df836914f9a09d37285c0381, type: 3}
       propertyPath: m_LocalPosition.x
@@ -4933,7 +4965,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d891d3e27201ae04b940a86252fb78fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::CorridorModule
-  kind: 0
+  kind: 1
   length: 4
   width: 3
   height: 2.7
@@ -4987,6 +5019,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4592153312823531025, guid: 57f3586b40d1d684a96f3900d7ae89d2, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.7071068
+      objectReference: {fileID: 0}
     - target: {fileID: 5947206743070220476, guid: 57f3586b40d1d684a96f3900d7ae89d2, type: 3}
       propertyPath: socketIn
       value: 
@@ -5035,7 +5071,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d891d3e27201ae04b940a86252fb78fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::CorridorModule
-  kind: 0
+  kind: 2
   length: 4
   width: 3
   height: 2.7
