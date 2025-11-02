@@ -3,31 +3,34 @@
 using UnityEditor;
 using UnityEngine;
 
-[CustomEditor(typeof(CorridorModule))]
-public class CorridorModuleGizmos : Editor
+public static class CorridorModuleGizmos
 {
-    void OnSceneGUI()
+    [DrawGizmo(GizmoType.Selected | GizmoType.NonSelected)]
+    static void DrawSockets(CorridorModule cm, GizmoType gizmoType)
     {
-        var cm = (CorridorModule)target;
-        DrawSocket(cm.socketIn, Color.green);
-        DrawSocket(cm.socketOut, Color.red);
-    }
+        if (!cm) return;
+        DrawSocket(cm.socketIn,  new Color(0f, 1f, 0f, 0.8f));
+        DrawSocket(cm.socketOut, new Color(1f, 0f, 0f, 0.8f));
 
-    static void DrawSocket(Transform t, Color c)
-    {
-        if (!t) return;
-        using (new Handles.DrawingScope(c, t.localToWorldMatrix)) // 로컬→월드 매트릭스 적용
+        void DrawSocket(Transform t, Color c)
         {
-            // 소켓 로컬 +Z가 '출구' 방향이라는 가정
-            var h = 2f; var w = 1f; var z = 0f;
-            var verts = new Vector3[] {
-                new(-w/2, 0, z), new(w/2, 0, z), new(w/2, h, z), new(-w/2, h, z)
-            };
-            Handles.DrawSolidRectangleWithOutline(verts, new Color(c.r, c.g, c.b, 0.08f), c);
-            Handles.ArrowHandleCap(0, Vector3.zero, Quaternion.identity, 0.6f, EventType.Repaint); // 방향 표시
+            if (!t) return;
+            Gizmos.color = c;
+            var p = t.position;
+            var fwd = t.forward;            // +Z를 소켓 법선으로 사용
+            var up  = Vector3.up;
+            var right = Vector3.Cross(up, fwd).normalized;
+            float w = 1.9f, h = cm.height - 0.1f;
+
+            Vector3 a = p + up*(h*0.5f) - right*(w*0.5f);
+            Vector3 b = p + up*(h*0.5f) + right*(w*0.5f);
+            Vector3 c2= p - up*(h*0.5f) + right*(w*0.5f);
+            Vector3 d = p - up*(h*0.5f) - right*(w*0.5f);
+
+            Gizmos.DrawLine(a,b); Gizmos.DrawLine(b,c2);
+            Gizmos.DrawLine(c2,d); Gizmos.DrawLine(d,a);
+            Gizmos.DrawRay(p, fwd * 0.8f); // 진행 화살표
         }
-        // 장면 보기 강제 갱신(보통은 필요 없지만 안전망)
-        SceneView.RepaintAll();
     }
 }
 #endif

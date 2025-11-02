@@ -9,7 +9,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 753803008596978256}
-  - component: {fileID: 5947206743070220476}
   m_Layer: 0
   m_Name: Corr_TurnR_4m
   m_TagString: Untagged
@@ -47,21 +46,6 @@ Transform:
   - {fileID: 4592153312823531025}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &5947206743070220476
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6409908069120626125}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 0}
-  m_Name: 
-  m_EditorClassIdentifier: Game.Editor::CorridorModule
-  socketIn: {fileID: 1105347301341217116}
-  socketOut: {fileID: 4592153312823531025}
-  length: 4
 --- !u!1 &6814158317519696538
 GameObject:
   m_ObjectHideFlags: 0

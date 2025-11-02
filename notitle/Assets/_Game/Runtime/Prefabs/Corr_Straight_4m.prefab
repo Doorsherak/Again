@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5383749310023082336}
-  - component: {fileID: 7236647538568390098}
+  - component: {fileID: 5152289573735807532}
   m_Layer: 0
   m_Name: Corr_Straight_4m
   m_TagString: Untagged
@@ -43,7 +43,7 @@ Transform:
   - {fileID: 7335951555399884681}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &7236647538568390098
+--- !u!114 &5152289573735807532
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -52,12 +52,16 @@ MonoBehaviour:
   m_GameObject: {fileID: 3479450912018670532}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 0}
+  m_Script: {fileID: 11500000, guid: d891d3e27201ae04b940a86252fb78fb, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Game.Editor::CorridorModule
+  m_EditorClassIdentifier: Game.Runtime::CorridorModule
+  kind: 0
+  length: 4
+  width: 3
+  height: 2.7
   socketIn: {fileID: 8364319110385125875}
   socketOut: {fileID: 7335951555399884681}
-  length: 4
+  forwardAxis: 0
 --- !u!1 &7180930110633141129
 GameObject:
   m_ObjectHideFlags: 0
@@ -83,12 +87,12 @@ Transform:
   m_GameObject: {fileID: 7180930110633141129}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 3.769}
+  m_LocalPosition: {x: 0, y: 0, z: 4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5383749310023082336}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
 --- !u!1 &7770772815973155452
 GameObject:
   m_ObjectHideFlags: 0
@@ -119,7 +123,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5383749310023082336}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
 --- !u!1001 &514737411651307592
 PrefabInstance:
   m_ObjectHideFlags: 0

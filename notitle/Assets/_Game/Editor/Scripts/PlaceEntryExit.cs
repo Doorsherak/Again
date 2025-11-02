@@ -1,13 +1,6 @@
 using UnityEngine;
 using UnityEditor;
 
-// Ensure the Segment class is defined or referenced
-public class Segment : MonoBehaviour
-{
-    public Transform entry;
-    public Transform exit;
-}
-
 public static class PlaceEntryExit
 {
     [MenuItem("Tools/Level/Add Entry & Exit (centered)")]
@@ -35,6 +28,7 @@ public static class PlaceEntryExit
         Transform exit = root.Find("Exit") ?? new GameObject("Exit").transform;
         exit.SetParent(root, true); exit.position = exitPos; exit.forward = alongZ ? Vector3.forward : Vector3.right;
 
+        // Segment는 런타임 어셈블리에서 정의된 것을 사용
         var seg = root.GetComponent<Segment>() ?? root.gameObject.AddComponent<Segment>();
         seg.entry = entry; seg.exit = exit;
 

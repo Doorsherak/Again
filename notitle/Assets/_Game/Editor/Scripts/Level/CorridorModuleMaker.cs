@@ -1,69 +1,84 @@
 #if UNITY_EDITOR
-using System.Net.Sockets;
-using log4net.Util;
 using UnityEditor;
 using UnityEngine;
-
-public class CorridorModule : MonoBehaviour
-{
-    public UnityEngine.Transform socketIn;
-    public UnityEngine.Transform socketOut;
-    public float length = 4f; // +Z가 진행
-    private void OnDrawGizmos()
-    {
-        Gizmos.matrix = transform.localToWorldMatrix;
-        // +Z 진행 화살표
-        Gizmos.DrawLine(Vector3.zero, new Vector3(0, 0, length));
-        Gizmos.DrawSphere(Vector3.zero, 0.05f);
-        Gizmos.DrawSphere(new Vector3(0, 0, length), 0.05f);
-    }
-}
+// CorridorModule가 정의된 네임스페이스가 있다면 using 문을 추가하세요.
+// 예시: using MyGame.Level; 
 
 public static class CorridorModuleMaker
 {
-    [MenuItem("Tools/Corridor/Wrap Selection As Module")]
-    public static void WrapSelection()
-    {
-        var sel = Selection.transforms;
-        if (sel == null || sel.Length == 0) { Debug.LogWarning("Select meshes first."); return; }
+    enum ForwardAxis { Z, X }
 
-        // 선택 바운즈 계산
-        bool has = false; Bounds b = new Bounds();
-        foreach (var t in sel)
+    [MenuItem("Tools/Corridor/Wrap Selection As Module (+Z)")]
+    public static void WrapZ() => WrapSelection(ForwardAxis.Z);
+
+    [MenuItem("Tools/Corridor/Wrap Selection As Module (+X)")]
+    public static void WrapX() => WrapSelection(ForwardAxis.X);
+
+    [MenuItem("Tools/Corridor/Fix All Modules In Scene")]
+    public static void FixAll()
+    {
+        foreach (var cm in Object.FindObjectsByType<CorridorModule>(FindObjectsSortMode.None))
         {
-            foreach (var r in t.GetComponentsInChildren<Renderer>())
+            Undo.RecordObject(cm, "Fix CorridorModule");
+            cm.EnsureAndFixSocketsContextMenu();
+            EditorUtility.SetDirty(cm);
+        }
+        SceneView.RepaintAll();
+    }
+
+    static void WrapSelection(ForwardAxis axis)
+    {
+        var trs = Selection.transforms;
+        if (trs == null || trs.Length == 0)
+        {
+            EditorUtility.DisplayDialog("Corridor", "먼저 메시(렌더러)가 있는 오브젝트를 선택하세요.", "확인");
+            return;
+        }
+
+        // 1) 바운즈 산출
+        var bounds = CalcWorldBounds(trs);
+        // 2) 부모 모듈 생성
+        var go = new GameObject("Corr_Straight_4m");
+        Undo.RegisterCreatedObjectUndo(go, "Create Corridor Module");
+        var cm = Undo.AddComponent<CorridorModule>(go);
+
+        // 3) 선택 오브젝트를 모듈 하위로 이동(상대 유지)
+        var pivot = bounds.center;
+        go.transform.position = pivot;
+
+        foreach (var t in trs)
+            Undo.SetTransformParent(t, go.transform, "Wrap Selection");
+
+        // 4) 길이/축 설정 (셀 스냅: 0.5m 단위)
+        float rawLen = (axis == ForwardAxis.Z) ? bounds.size.z : bounds.size.x;
+        cm.length = Mathf.Max(0.5f, Mathf.Round(rawLen * 2f) * 0.5f); // 0.5m 스냅
+        cm.kind = CorridorModule.Kind.Straight;
+        cm.forwardAxis = (axis == ForwardAxis.Z)
+            ? CorridorModule.ForwardAxis.Z
+            : CorridorModule.ForwardAxis.X;
+
+        cm.EnsureAndFixSocketsContextMenu();
+
+        Selection.activeObject = go;
+        EditorGUIUtility.PingObject(go);
+        EditorUtility.SetDirty(go);
+        SceneView.RepaintAll();
+    }
+
+    static Bounds CalcWorldBounds(Transform[] trs)
+    {
+        bool inited = false;
+        Bounds b = new Bounds(Vector3.zero, Vector3.zero);
+        foreach (var t in trs)
+        {
+            foreach (var r in t.GetComponentsInChildren<Renderer>(true))
             {
-                if (!has) { b = r.bounds; has = true; } else b.Encapsulate(r.bounds);
+                if (!inited) { b = r.bounds; inited = true; }
+                else b.Encapsulate(r.bounds);
             }
         }
-        if (!has) { Debug.LogWarning("No renderers in selection."); return; }
-
-        // 새 부모: 바닥-입구 중앙(=minZ면), +Z 진행 기준
-        Vector3 pivot = new Vector3(b.center.x, b.min.y, b.min.z);
-        var parent = new GameObject("Corr_Module");
-        Undo.RegisterCreatedObjectUndo(parent, "Create Corr_Module");
-        parent.transform.position = pivot;
-        parent.transform.rotation = Quaternion.identity;
-        parent.isStatic = true;
-
-        // 선택 리패런팅 (월드 위치 유지)
-        foreach (var t in sel) Undo.SetTransformParent(t, parent.transform, "Reparent To Corr_Module");
-
-        // 컴포넌트 & 소켓
-        var cm = Undo.AddComponent<CorridorModule>(parent);
-        float length = Mathf.Round((b.size.z) * 1000f) / 1000f; // 그대로 측정
-        cm.length = length;
-
-        UnityEngine.Transform sIn = new GameObject("Socket_In").transform;
-        UnityEngine.Transform sOut = new GameObject("Socket_Out").transform;
-        sIn.SetParent(parent.transform, false);
-        sOut.SetParent(parent.transform, false);
-        sIn.localPosition = Vector3.zero;
-        sOut.localPosition = new Vector3(0, 0, cm.length);
-        cm.socketIn = sIn;
-        cm.socketOut = sOut;
-
-        Debug.Log($"Corridor module created. length?{cm.length:F3} (Z). Pivot at floor/entrance.");
+        if (!inited) b = new Bounds(trs[0].position, Vector3.one * 0.1f);
+        return b;
     }
 }
 #endif
