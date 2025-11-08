@@ -30,23 +30,16 @@ public class CorridorModule : MonoBehaviour
     [Header("진행축 설정")]
     public ForwardAxis forwardAxis = ForwardAxis.Z;
 
+
+
     // 에디터에서 값 바뀔 때마다 소켓 정규화
     void OnValidate()
-
     {
-        {
-            if (Application.isPlaying) return;                        // [1] 플레이 진입 시 호출돼도 정렬 금지. OnValidate는 재생 진입에도 호출됨. :contentReference[oaicite:0]{index=0}
-#if UNITY_EDITOR
-            if (UnityEditor.PrefabUtility.IsPartOfPrefabAsset(gameObject)) return;        // [2] 프리팹 '자산'이면 금지. :contentReference[oaicite:1]{index=1}
-            if (UnityEditor.SceneManagement.PrefabStageUtility.GetCurrentPrefabStage() != null) return; // [3] 프리팹 모드(격리 편집)에서도 금지. :contentReference[oaicite:2]{index=2}
-#endif
-
-            // ↓↓↓ 기존 자동 정렬/재배치 코드가 여기부터 실행되도록 유지
-        }
-        EnsureSockets();
-        NormalizeSockets();
-        WarnIfNonUniformScale();
+        if (Application.isPlaying) return;                              // 플레이 중엔 관여 금지
+        if (UnityEditor.SceneManagement.PrefabStageUtility.GetCurrentPrefabStage() != null) return;
+        // 프리팹 모드(에셋 편집)에서도 관여 금지
     }
+
 
     [ContextMenu("Corridor/Create or Fix Sockets")]
     public void EnsureAndFixSocketsContextMenu()

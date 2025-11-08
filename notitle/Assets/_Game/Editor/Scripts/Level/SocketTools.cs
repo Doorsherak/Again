@@ -1,44 +1,54 @@
 // Editor/SocketTools.cs
 #if UNITY_EDITOR
-using UnityEngine;
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using UnityEditor.Experimental.SceneManagement;
+using UnityEngine;
 
-static class SocketTools
+public static class SocketTools
 {
-    [MenuItem("Tools/Corridor/Normalize Sockets (Selected)")]
-    static void Normalize()
+    [MenuItem("Corridor/Socket Tools/Normalize Selected")]
+    static void NormalizeSelected()
     {
-        foreach (var t in Selection.transforms)
+        var modules = Selection.GetFiltered<CorridorModule>(SelectionMode.Editable);
+        foreach (var cm in modules)
         {
-            var cm = t.GetComponent<CorridorModule>();
-            if (!cm || !t.gameObject.scene.IsValid()) continue;
+            // ★ 위치/회전만 보정. SetParent 금지 (프리팹 에셋 오류 방지)
+            NormalizeSocketsNoReparent(cm);
 
-            Ensure(ref cm.socketIn, "Socket_In", t);
-            Ensure(ref cm.socketOut, "Socket_Out", t);
-
-            // 예시: 모듈 중심을 원점, 진행축 +X 라고 가정
-            float half = 2.0f; // 길이의 절반 (프로퍼티 있으면 그 값 사용)
-            Vector3 dir = Vector3.right;
-
-            Undo.RecordObject(cm.socketIn, "Move Socket");
-            Undo.RecordObject(cm.socketOut, "Move Socket");
-            cm.socketIn.localPosition = -dir * half;
-            cm.socketOut.localPosition = dir * half;
-            cm.socketIn.localRotation = Quaternion.LookRotation(dir);
-            cm.socketOut.localRotation = Quaternion.LookRotation(-dir);
-
+            // 더티 마킹
             EditorUtility.SetDirty(cm);
+            if (cm.socketIn) EditorUtility.SetDirty(cm.socketIn);
+            if (cm.socketOut) EditorUtility.SetDirty(cm.socketOut);
+        }
+
+        // 저장: 프리팹 모드 vs 씬
+        var stage = PrefabStageUtility.GetCurrentPrefabStage();
+        if (stage != null)
+        {
+            string path = AssetDatabase.GetAssetPath(stage.prefabContentsRoot);
+            PrefabUtility.SaveAsPrefabAsset(stage.prefabContentsRoot, path);
+        }
+        else
+        {
+            EditorSceneManager.MarkSceneDirty(UnityEngine.SceneManagement.SceneManager.GetActiveScene());
         }
     }
 
-    static void Ensure(ref Transform tr, string name, Transform parent)
+    // 누락된 함수 정의 추가
+    static void NormalizeSocketsNoReparent(CorridorModule cm)
     {
-        if (!tr)
+        // 기존 NormalizeSockets()와 유사하게 구현하거나, 필요한 위치/회전 보정 로직 작성
+        // 예시: 소켓의 위치/회전만 보정 (SetParent 사용 금지)
+        if (cm.socketIn != null)
         {
-            var existing = parent.Find(name);
-            tr = existing ? existing : new GameObject(name).transform;
-            if (tr.parent != parent) Undo.SetTransformParent(tr, parent, "Parent Socket");
+            cm.socketIn.localPosition = Vector3.zero;
+            cm.socketIn.localRotation = Quaternion.identity;
+        }
+        if (cm.socketOut != null)
+        {
+            cm.socketOut.localPosition = new Vector3(0, 0, cm.length);
+            cm.socketOut.localRotation = Quaternion.identity;
         }
     }
 }
