@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 493860}
+  - component: {fileID: 8821532139185716654}
   m_Layer: 0
   m_Name: P_Wall_01
   m_TagString: Untagged
@@ -33,6 +34,20 @@ Transform:
   - {fileID: 4317297588239746}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8821532139185716654
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 136086}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8a195c3b5647c6469734067c08fd06b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Runtime::MeasureSize
+  worldSize: {x: 3, y: 1.87, z: 0}
+  localSize: {x: 3, y: 1.87, z: 0}
 --- !u!1 &1267992698515384
 GameObject:
   m_ObjectHideFlags: 0
@@ -45,6 +60,7 @@ GameObject:
   - component: {fileID: 33319968708103316}
   - component: {fileID: 23364929615377690}
   - component: {fileID: 64165276453591286}
+  - component: {fileID: 5765529773283375691}
   m_Layer: 0
   m_Name: Wall_01
   m_TagString: Untagged
@@ -74,7 +90,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1267992698515384}
-  m_Mesh: {fileID: -2432090755550338912, guid: 220440116ec5d2f4fa6d4c4b8a9e095b, type: 3}
+  m_Mesh: {fileID: -8874745513740246926, guid: 4b099580e8eabfb42889e14585c642ac, type: 3}
 --- !u!23 &23364929615377690
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -144,7 +160,21 @@ MeshCollider:
   serializedVersion: 5
   m_Convex: 1
   m_CookingOptions: 30
-  m_Mesh: {fileID: -2432090755550338912, guid: 220440116ec5d2f4fa6d4c4b8a9e095b, type: 3}
+  m_Mesh: {fileID: -8874745513740246926, guid: 4b099580e8eabfb42889e14585c642ac, type: 3}
+--- !u!114 &5765529773283375691
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1267992698515384}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8a195c3b5647c6469734067c08fd06b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Runtime::MeasureSize
+  worldSize: {x: 3, y: 1.1302, z: 0.0072}
+  localSize: {x: 3, y: 1.1302, z: 0.0072}
 --- !u!1 &1739315691765316
 GameObject:
   m_ObjectHideFlags: 0
@@ -157,6 +187,7 @@ GameObject:
   - component: {fileID: 33505639532492946}
   - component: {fileID: 23410520315410888}
   - component: {fileID: 64176364834421666}
+  - component: {fileID: 2319106221512578339}
   m_Layer: 0
   m_Name: Object001
   m_TagString: Untagged
@@ -186,7 +217,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1739315691765316}
-  m_Mesh: {fileID: -3292925553009838691, guid: 4b099580e8eabfb42889e14585c642ac, type: 3}
+  m_Mesh: {fileID: 9181521242391110318, guid: ff05c637616662c458b37bd6182a7e4b, type: 3}
 --- !u!23 &23410520315410888
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -256,4 +287,18 @@ MeshCollider:
   serializedVersion: 5
   m_Convex: 1
   m_CookingOptions: 30
-  m_Mesh: {fileID: -3292925553009838691, guid: 4b099580e8eabfb42889e14585c642ac, type: 3}
+  m_Mesh: {fileID: 9181521242391110318, guid: ff05c637616662c458b37bd6182a7e4b, type: 3}
+--- !u!114 &2319106221512578339
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1739315691765316}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8a195c3b5647c6469734067c08fd06b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Runtime::MeasureSize
+  worldSize: {x: 3, y: 1.87, z: 0}
+  localSize: {x: 3, y: 1.87, z: 0}

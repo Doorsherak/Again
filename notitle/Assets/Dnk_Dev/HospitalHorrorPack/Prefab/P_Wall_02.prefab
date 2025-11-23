@@ -45,6 +45,7 @@ GameObject:
   - component: {fileID: 33073338832640132}
   - component: {fileID: 23103957414344330}
   - component: {fileID: 64235320628447982}
+  - component: {fileID: 3476432935463711480}
   m_Layer: 0
   m_Name: Tile02
   m_TagString: Untagged
@@ -74,7 +75,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1729042616382818}
-  m_Mesh: {fileID: 1547719041247693425, guid: ff05c637616662c458b37bd6182a7e4b, type: 3}
+  m_Mesh: {fileID: 1427205099479976863, guid: 4d7f76e8a20212f4aa191220f730d6ef, type: 3}
 --- !u!23 &23103957414344330
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -144,7 +145,21 @@ MeshCollider:
   serializedVersion: 5
   m_Convex: 1
   m_CookingOptions: 30
-  m_Mesh: {fileID: 1547719041247693425, guid: ff05c637616662c458b37bd6182a7e4b, type: 3}
+  m_Mesh: {fileID: 1547719041247693425, guid: 4d7f76e8a20212f4aa191220f730d6ef, type: 3}
+--- !u!114 &3476432935463711480
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1729042616382818}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8a195c3b5647c6469734067c08fd06b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Runtime::MeasureSize
+  worldSize: {x: 3, y: 1.13, z: 0.008001001}
+  localSize: {x: 3, y: 1.13, z: 0.008001001}
 --- !u!1 &1851247119803410
 GameObject:
   m_ObjectHideFlags: 0
@@ -157,6 +172,7 @@ GameObject:
   - component: {fileID: 33117894449703750}
   - component: {fileID: 23936382516187576}
   - component: {fileID: 64849234916586248}
+  - component: {fileID: 9001102725542880629}
   m_Layer: 0
   m_Name: Wall_02
   m_TagString: Untagged
@@ -186,7 +202,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1851247119803410}
-  m_Mesh: {fileID: -2432090755550338912, guid: 2e7a8487ab4626741848c28337daebd1, type: 3}
+  m_Mesh: {fileID: -6611608503315275632, guid: 4d7f76e8a20212f4aa191220f730d6ef, type: 3}
 --- !u!23 &23936382516187576
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -256,4 +272,18 @@ MeshCollider:
   serializedVersion: 5
   m_Convex: 1
   m_CookingOptions: 30
-  m_Mesh: {fileID: -2432090755550338912, guid: 2e7a8487ab4626741848c28337daebd1, type: 3}
+  m_Mesh: {fileID: -5604751217159766252, guid: 4d7f76e8a20212f4aa191220f730d6ef, type: 3}
+--- !u!114 &9001102725542880629
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1851247119803410}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8a195c3b5647c6469734067c08fd06b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Runtime::MeasureSize
+  worldSize: {x: 3, y: 3, z: 0.007}
+  localSize: {x: 3, y: 3, z: 0.007}
