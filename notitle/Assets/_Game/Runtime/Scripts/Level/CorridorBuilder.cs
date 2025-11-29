@@ -1,14 +1,18 @@
+ï»¿using System;
 using UnityEngine;
+using static System.Net.Mime.MediaTypeNames;
+// ì•„ë˜ ì¤„ì„ ì¶”ê°€í•˜ì—¬ UnityEngine.Applicationì„ ëª…ì‹œì ìœ¼ë¡œ ì‚¬ìš©
+using Application = UnityEngine.Application;
 #if UNITY_EDITOR
 using UnityEditor; // PrefabUtility, DestroyImmediate
 #endif
 
 /// <summary>
-/// Corridor ¸ğµâ ºô´õ:
-///  - ½½·Ô¿¡ CorridorModule ÇÁ¸®ÆÕ 5Á¾(Á÷¼±/ÁÂ/¿ì/¹®/¸·´Ù¸¥)À» ÇÒ´ç
-///  - layout: 'F'(Á÷Áø), 'L'(ÁÂÈ¸Àü), 'R'(¿ìÈ¸Àü), 'D'(¹®), 'E'(¸·´Ù¸¥) ¹®ÀÚ·Î ±¸¼º
-///  - ¿¡µğÅÍ: ÀÎ½ºÆåÅÍ ¿ìÅ¬¸¯ ¸Ş´º [Build Now]·Î Áï½Ã »ı¼º
-///  - ÇÃ·¹ÀÌ: Build On Awake ÄÑ¸é ½ÃÀÛ ½Ã ÀÚµ¿ »ı¼º
+/// Corridor  :
+///  - Ô¿ CorridorModule  5(////Ù¸) Ò´
+///  - layout: 'F'(), 'L'(È¸), 'R'(È¸), 'D'(), 'E'(Ù¸) Ú· 
+///  - : Î½ Å¬ Ş´ [Build Now]  
+///  - Ã·: Build On Awake Ñ¸   Úµ 
 /// </summary>
 public class CorridorBuilder : MonoBehaviour
 {
@@ -22,43 +26,55 @@ public class CorridorBuilder : MonoBehaviour
     [Header("Layout")]
     [TextArea] public string layout = "FFRFFLFFDFE";
 
+    [Header("Random layout")]
+    [Tooltip("ì²´í¬í•˜ë©´ layout ëŒ€ì‹  ëœë¤ìœ¼ë¡œ 15ê¸€ì(F/R/L + ë§ˆì§€ë§‰ D/E) ìƒì„±")]
+    public bool useRandomLayout = false;
+
+    [Tooltip("ê°™ì€ ì‹œë“œë¥¼ ì“°ë©´ í•­ìƒ ê°™ì€ ë ˆì´ì•„ì›ƒì´ ë‚˜ì˜´")]
+    public int randomSeed = 42;
+
+    [Tooltip("ì´ ê¸¸ì´(ë¬¸ì ìˆ˜). ê¸°ë³¸ê°’ 15")]
+    public int randomLength = 15;
+
+
+
     [Header("Build options")]
     public bool clearBeforeBuild = true;
     public bool buildOnAwake = false;
-    [Tooltip("ÀÌÀ½»õ ¹Ì¼¼ °ãÄ§(¹ÌÅÍ). 0~2mm ±ÇÀå")]
+    [Tooltip(" Ì¼ Ä§(). 0~2mm ")]
     public float joinBias = 0.001f;
 
     [Header("Naming")]
     public bool autoNameInstances = true;
-    [Tooltip("{index:000} {cmd} {prefab} ÅäÅ« »ç¿ë °¡´É")]
+    [Tooltip("{index:000} {cmd} {prefab} Å«  ")]
     public string nameFormat = "{index:000}_{cmd}_{prefab}";
 
-    // ³»ºÎ »óÅÂ
-    Transform lastOut; // Á÷Àü ¸ğµâÀÇ socketOut
+    //  
+    Transform lastOut; //   socketOut
     int index;
 
     void Awake()
     {
-        // ÇÃ·¹ÀÌ ÁøÀÔ ½Ã ÀÚµ¿ ºôµå ¿É¼Ç
+        // Ã·   Úµ  É¼
         if (buildOnAwake) Build();
     }
 
-    /// <summary>¿¡µğÅÍ¿¡¼­ ¿ìÅ¬¸¯ ¸Ş´º·Î ¼öµ¿ ½ÇÇà</summary>
+    /// <summary>Í¿ Å¬ Ş´  </summary>
     [ContextMenu("Build Now")]
     public void Build()
     {
-        // 0) ÃÊ±âÈ­/Á¤¸®
+        // 0) Ê±È­/
         if (clearBeforeBuild)
         {
             for (int i = transform.childCount - 1; i >= 0; --i)
             {
                 var child = transform.GetChild(i).gameObject;
                 if (Application.isPlaying)
-                    Destroy(child);                  // ·±Å¸ÀÓ
+                    Destroy(child);                  // Å¸
                 else
                 {
 #if UNITY_EDITOR
-                    DestroyImmediate(child);         // ¿¡µğÅÍ Áï½Ã »èÁ¦
+                    DestroyImmediate(child);         //   
 #else
                     Destroy(child);
 #endif
@@ -68,13 +84,19 @@ public class CorridorBuilder : MonoBehaviour
         lastOut = null;
         index = 0;
 
+        if (useRandomLayout)
+        {
+            layout = GenerateRandomLayout(randomLength, randomSeed);
+            UnityEngine.Debug.Log($"[CorridorBuilder] Random layout generated: {layout}", this);
+        }
+
         if (string.IsNullOrWhiteSpace(layout))
         {
-            Debug.LogWarning("[CorridorBuilder] layout ÀÌ ºñ¾î ÀÖ½À´Ï´Ù.", this);
+            UnityEngine.Debug.LogWarning("[CorridorBuilder] layout   Ö½Ï´.", this);
             return;
         }
 
-        // 1) ·¹ÀÌ¾Æ¿ô ÆÄ½Ì & ¹èÄ¡
+        // 1) Ì¾Æ¿ Ä½ & Ä¡
         foreach (char raw in layout.Trim())
         {
             char c = char.ToUpperInvariant(raw);
@@ -85,21 +107,20 @@ public class CorridorBuilder : MonoBehaviour
                 'F' => straight,
                 'L' => turnL,
                 'R' => turnR,
-                'D' => (door ? door : straight), // ¹® ÇÁ¸®ÆÕÀÌ ¾øÀ¸¸é Á÷¼±À¸·Î ´ëÃ¼
+                'D' => (door ? door : straight), //     Ã¼
                 'E' => deadEnd,
                 _ => null
             };
 
             if (!prefab)
             {
-                Debug.LogError($"[CorridorBuilder] '{c}' ÇÁ¸®ÆÕÀÌ ºñ¾î ÀÖ½À´Ï´Ù.", this);
+                UnityEngine.Debug.LogError($"[CorridorBuilder] '{c}'   Ö½Ï´.", this);
                 return;
             }
 
-            var placed = Place(prefab);       // ¼ÒÄÏ Á¤·Ä ¹èÄ¡
-            if (!placed) { Debug.LogError("[CorridorBuilder] ¹èÄ¡ ½ÇÆĞ", this); return; }
+            var placed = Place(prefab);
 
-            // 2) ÀÚµ¿ ³×ÀÌ¹Ö
+            // 2) Ã³ socketOut    Ì´
             if (autoNameInstances)
             {
                 placed.name = nameFormat
@@ -108,33 +129,65 @@ public class CorridorBuilder : MonoBehaviour
                     .Replace("{prefab}", prefab.name);
             }
 
-            // 3) ÀÌÀ½»õ ¹Ì¼¼ °ãÄ§(ºû»ù ¹æÁö)
+            // 3)  Ì¼ Ä§( )
             if (joinBias > 0f)
                 placed.transform.position -= placed.transform.forward * joinBias;
 
             lastOut = placed.socketOut;
             index++;
 
-            if (c == 'E') break; // DeadEnd´Â ¿©±â¼­ Á¾·á
+            if (c == 'E') break; // DeadEnd â¼­ 
         }
 
-        Debug.Log($"[CorridorBuilder] Done. {index} modules placed.", this);
+        UnityEngine.Debug.Log($"[CorridorBuilder] Done. {index} modules placed.", this);
     }
 
-    /// <summary>ÇÁ¸®ÆÕÀ» ÀÎ½ºÅÏ½ºÈ­ÇÏ°í socketIn/out ±âÁØÀ¸·Î ¸ÂÃç ¹èÄ¡</summary>
+    /// <summary>
+    /// FRLì—ì„œ ì• N-1 ê¸€ìë¥¼ ë½‘ê³ , ë§ˆì§€ë§‰ ê¸€ìëŠ” D ë˜ëŠ” Eë¡œ ê³ ì •í•˜ëŠ” ëœë¤ ë ˆì´ì•„ì›ƒ ìƒì„±
+    /// totalLengthê°€ 15ì´ë©´: ì• 14ì = F/R/L, ë§ˆì§€ë§‰ 1ì = D ë˜ëŠ” E
+    /// </summary>
+    string GenerateRandomLayout(int totalLength, int seed)
+    {
+        if (totalLength < 1)
+        {
+            Debug.LogError("[CorridorBuilder] totalLength ëŠ” 1 ì´ìƒì´ì–´ì•¼ í•©ë‹ˆë‹¤.");
+            totalLength = 1;
+        }
+
+        var rng = new System.Random(seed);
+
+        char[] result = new char[totalLength];
+
+        // ì• totalLength - 1 ìë¦¬ëŠ” F / R / L ì¤‘ì—ì„œ ëœë¤
+        char[] pool = { 'F', 'R', 'L' };
+        int bodyLength = Mathf.Max(1, totalLength - 1);
+
+        for (int i = 0; i < bodyLength; i++)
+        {
+            int idx = rng.Next(0, pool.Length); // [0, pool.Length)
+            result[i] = pool[idx];
+        }
+
+        // ë§ˆì§€ë§‰ ê¸€ìëŠ” D ë˜ëŠ” E
+        result[totalLength - 1] = (rng.Next(0, 2) == 0) ? 'D' : 'E';
+
+        return new string(result);
+    }
+
+    /// <summary> Î½Ï½È­Ï° socketIn/out   Ä¡</summary>
     CorridorModule Place(CorridorModule prefab)
     {
         GameObject go;
 
         if (Application.isPlaying)
         {
-            // ·±Å¸ÀÓ Ç¥ÁØ ÀÎ½ºÅÏ½ºÈ­(ÇÁ¸®ÆÕ ¿¬°á ºÒÇÊ¿ä)
+            // Å¸ Ç¥ Î½Ï½È­(  Ê¿)
             go = Instantiate(prefab.gameObject, transform);
         }
         else
         {
 #if UNITY_EDITOR
-            // ¿¡µğÅÍ¿¡¼± ÇÁ¸®ÆÕ ¿¬°á À¯Áö(¾À¿¡¼­ ÀçÀû¿ë/¸®³×ÀÓ Æí¸®)
+            // Í¿   ( / )
             go = (GameObject)PrefabUtility.InstantiatePrefab(prefab.gameObject, transform);
 #else
             go = Instantiate(prefab.gameObject, transform);
@@ -142,21 +195,28 @@ public class CorridorBuilder : MonoBehaviour
         }
 
         var cm = go.GetComponent<CorridorModule>();
+        if (!cm)
+        {
+            Debug.LogError("[CorridorBuilder] CorridorModule Ïµ Ï´.", prefab);
+            return null;
+        }
+
         var t = go.transform;
 
-        if (lastOut == null)
+        if (!lastOut)
         {
-            // Ã¹ ¸ğµâ: ºô´õÀÇ À§Ä¡/È¸Àü ±âÁØ
+            // Ã¹ :  Ä¡/È¸ 
             t.SetPositionAndRotation(transform.position, transform.rotation);
         }
         else
         {
-            // ÀÌÈÄ ¸ğµâ: Á÷Àü ¸ğµâÀÇ socketOut°ú Çö ¸ğµâÀÇ socketInÀ» Á¤·Ä
+            //  : socketOut socketIn Ä¡
             t.SetPositionAndRotation(lastOut.position, lastOut.rotation);
+            t.localScale = lastOut.lossyScale;
 
             if (cm && cm.socketIn)
             {
-                // socketInÀÇ ·ÎÄÃ º¯È¯À» »ó¼âÇÏ¿© µÎ ¼ÒÄÏÀÌ Á¤È®È÷ ¸Â´ê°Ô ÇÔ
+                // socketIn  È¯ Ï¿   È® Â´ 
                 t.rotation *= Quaternion.Inverse(cm.socketIn.localRotation);
                 t.position -= t.TransformVector(cm.socketIn.localPosition);
             }
