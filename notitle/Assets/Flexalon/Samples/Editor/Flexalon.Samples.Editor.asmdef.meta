@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 0e87c7b188bfcfe46aa22a9c2b506b5d
+AssemblyDefinitionImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 230509
+  packageName: 'Flexalon Pro: 3D & UI Layouts'
+  packageVersion: 4.3.0
+  assetPath: Assets/Flexalon/Samples/Editor/Flexalon.Samples.Editor.asmdef
+  uploadId: 745902

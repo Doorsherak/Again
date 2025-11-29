@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 3d42286ac2ae6234aa488fb3079c844d
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 230509
+  packageName: 'Flexalon Pro: 3D & UI Layouts'
+  packageVersion: 4.3.0
+  assetPath: Assets/Flexalon/Documentation/docs/api/Flexalon.FlexalonGridLayout.html
+  uploadId: 745902

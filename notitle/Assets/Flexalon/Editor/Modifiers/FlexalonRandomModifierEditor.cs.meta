@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 41807431304a12e40bcf0a1428819fce
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 230509
+  packageName: 'Flexalon Pro: 3D & UI Layouts'
+  packageVersion: 4.3.0
+  assetPath: Assets/Flexalon/Editor/Modifiers/FlexalonRandomModifierEditor.cs
+  uploadId: 745902

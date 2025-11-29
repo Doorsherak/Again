@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 5325f2ad02f14e242b86eb4bb0fcb5ee
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 230509
+  packageName: 'Flexalon Pro: 3D & UI Layouts'
+  packageVersion: 4.3.0
+  assetPath: Assets/Flexalon/package.json
+  uploadId: 745902

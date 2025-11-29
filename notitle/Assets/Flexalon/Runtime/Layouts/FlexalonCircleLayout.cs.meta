@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 9f1ba426d283d1e41b95ec12777a8e04
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 230509
+  packageName: 'Flexalon Pro: 3D & UI Layouts'
+  packageVersion: 4.3.0
+  assetPath: Assets/Flexalon/Runtime/Layouts/FlexalonCircleLayout.cs
+  uploadId: 745902

@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 22d6dcfe03763844c9d23451bd3422da
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 230509
+  packageName: 'Flexalon Pro: 3D & UI Layouts'
+  packageVersion: 4.3.0
+  assetPath: Assets/Flexalon/Documentation/docs/api/Flexalon.FlexalonInteractable.RestrictionType.html
+  uploadId: 745902

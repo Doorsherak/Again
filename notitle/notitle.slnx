@@ -1,0 +1,20 @@
+﻿<Solution>
+  <Project Path="Flexalon.Editor.csproj" />
+  <Project Path="JBooth.MicroVerseCore.csproj" />
+  <Project Path="Flexalon.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="Game.Runtime.csproj" />
+  <Project Path="JBooth.MicroVerseCore.Editor.csproj" />
+  <Project Path="Flexalon.Samples.Editor.csproj" />
+  <Project Path="FMODUnityResonanceEditor.csproj" />
+  <Project Path="FMODUnityEditor.csproj" />
+  <Project Path="FMODUnity.csproj" />
+  <Project Path="JBooth.MicroVerseCore.Demo.TimeOfDay.Runtime.csproj" />
+  <Project Path="Flexalon.Samples.csproj" />
+  <Project Path="FMODUnityHaptics.csproj" />
+  <Project Path="Assembly-CSharp-Editor.csproj" />
+  <Project Path="Game.Editor.csproj" />
+  <Project Path="FMODUnityResonance.csproj" />
+  <Project Path="JBooth.MicroVerse.ShaderPackagerEditor.csproj" />
+  <Project Path="JBooth.MicroVerseCore.Demo.TimeOfDay.Editor.csproj" />
+</Solution>

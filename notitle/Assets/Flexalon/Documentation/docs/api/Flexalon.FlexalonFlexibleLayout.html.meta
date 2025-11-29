@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: a575f5353a882ea4fa05914a7ea94233
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 230509
+  packageName: 'Flexalon Pro: 3D & UI Layouts'
+  packageVersion: 4.3.0
+  assetPath: Assets/Flexalon/Documentation/docs/api/Flexalon.FlexalonFlexibleLayout.html
+  uploadId: 745902

@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 02247b962b5f7624e9938e805feec79d
+DefaultImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 230509
+  packageName: 'Flexalon Pro: 3D & UI Layouts'
+  packageVersion: 4.3.0
+  assetPath: Assets/Flexalon/Samples/Scenes/3D/CustomLayoutSample.unity
+  uploadId: 745902
