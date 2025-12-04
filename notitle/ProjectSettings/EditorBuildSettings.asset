@@ -11,12 +11,21 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/SlimUI/Modern Menu 1/Scenes/Demos/Demo1.unity
     guid: 829a86ba161cdd840842063447f41aab
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/StartScreen.unity
     guid: 21f44d7fe70394f47b38cd3174552de8
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/GameScene.unity
     guid: 2475bd9ab5ff72547bb5d91bdec369e5
+  - enabled: 1
+    path: Assets/StartScreen.unity
+    guid: 8de2eda3f8a5fb54f8efb4aa2efd84fb
+  - enabled: 1
+    path: Assets/GameScene.unity
+    guid: dea76d1f5e6ca124a84ca41073f866ef
+  - enabled: 0
+    path: Assets/1x1 test.unity
+    guid: 0c638ce537262c14485150a582fc6531
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0
