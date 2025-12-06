@@ -104,10 +104,10 @@ namespace Flexalon
                 }
 
                 // Detect scale/rotation changes in edit mode, even if we don't have a FlexalonObject.
-                if (!Application.isPlaying && !Node.Dirty && !_node.HasFlexalonObject &&
-                    (_node.Result.TransformPosition != transform.localPosition ||
-                     _node.Result.TransformRotation != transform.localRotation ||
-                     _node.Result.TransformScale != transform.localScale))
+                if (!Application.isPlaying && !Node.Dirty && !Node.HasFlexalonObject &&
+                    (Node.Result.TransformPosition != transform.localPosition ||
+                     Node.Result.TransformRotation != transform.localRotation ||
+                     Node.Result.TransformScale != transform.localScale))
                 {
                     MarkDirty();
                 }
@@ -125,7 +125,7 @@ namespace Flexalon
             if (target)
             {
                 var targetNode = Flexalon.GetOrCreateNode(target);
-                _node.SetConstraint(this, targetNode);
+                Node.SetConstraint(this, targetNode);
 
                 if (!targetNode.HasResult)
                 {
@@ -139,7 +139,7 @@ namespace Flexalon
             }
             else
             {
-                _node.SetConstraint(null, null);
+                Node.SetConstraint(null, null);
             }
         }
 
@@ -168,7 +168,8 @@ namespace Flexalon
                 FlexalonLog.Log("Constrain:AlignPosition [Centered]", node, alignPosition);
 
                 var pivotPosition = Math.Align(bounds.size, _horizontalPivot, _verticalPivot, _depthPivot);
-                var scale = _node.GetWorldBoxScale(false);
+                var scale = Node.GetWorldBoxScale(false);
+                pivotPosition.Scale(scale);
 
                 FlexalonLog.Log("Constrain:PivotPosition", node, pivotPosition);
 

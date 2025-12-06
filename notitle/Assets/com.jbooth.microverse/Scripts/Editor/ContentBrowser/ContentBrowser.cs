@@ -328,6 +328,20 @@ namespace JBooth.MicroVerseCore.Browser
             // calculated automatically in the next step wherein the tangent mode is set to "Auto Smooth."
             spline.Knots = m_Reduced.Select(x => new BezierKnot(x));
 
+            // center
+            float3 center = 0;
+            foreach (var p in spline)
+            {
+                center += p.Position;
+            }
+            center /= spline.Count;
+            splineContainer.transform.position = center;
+            for (int i = 0; i < spline.Count; ++i)
+            {
+                var k = spline[i];
+                k.Position -= center;
+                spline[i] = k;
+            }
 
             var all = new SplineRange(0, spline.Count);
 
@@ -339,6 +353,7 @@ namespace JBooth.MicroVerseCore.Browser
             spline.SetAutoSmoothTension(all, splineTension);
            
             spline.Closed = placementMode == PlacementMode.PaintArea;
+
             EditorUtility.SetDirty(splineContainer);
 
             //m_Stats.text = $"Input Sample Count: {m_Stroke.Count}\nSpline Knot Count: {m_Reduced.Count}";
@@ -479,7 +494,6 @@ namespace JBooth.MicroVerseCore.Browser
                                             avg += p;
                                             min = Vector3.Min(min, p);
                                             max = Vector3.Max(max, p);
-                                            
                                         }
 
                                         avg /= splineContainer.Spline.Count;

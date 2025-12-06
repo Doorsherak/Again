@@ -285,6 +285,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 80dcb41fc71e8374a81016015cf6a993, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::MenuCursorFree
+  menuSceneNames:
+  - StartScreen
+  - Options
+  - Credits
 --- !u!1 &1140428712
 GameObject:
   m_ObjectHideFlags: 0
@@ -295,6 +299,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1140428714}
   - component: {fileID: 1140428715}
+  - component: {fileID: 1140428716}
   m_Layer: 0
   m_Name: StartScreenManager
   m_TagString: Untagged
@@ -340,6 +345,18 @@ MonoBehaviour:
   sceneName: GameScene
   fadeInDuration: 1.6
   buttonStagger: 0.06
+--- !u!225 &1140428716
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1140428712}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &1163606949
 GameObject:
   m_ObjectHideFlags: 0

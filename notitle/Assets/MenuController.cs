@@ -7,27 +7,27 @@ public class MenuController : MonoBehaviour
 {
     [Header("Panels")]
     public GameObject mainMenuPanel;   // MainMenuPanel
-    public GameObject optionsPanel;    // OptionsPanel (ÃÊ±â ºñÈ°¼º)
+    public GameObject optionsPanel;    // OptionsPanel (ï¿½Ê±ï¿½ ï¿½ï¿½È°ï¿½ï¿½)
 
     [Header("Focus")]
-    public Selectable firstOnMain;     // Game Start ¹öÆ°
-    public Selectable firstOnOptions;  // Back ¶Ç´Â Ã¹ ¿É¼Ç À§Á¬
+    public Selectable firstOnMain;     // Game Start ï¿½ï¿½Æ°
+    public Selectable firstOnOptions;  // Back ï¿½Ç´ï¿½ Ã¹ ï¿½É¼ï¿½ ï¿½ï¿½ï¿½ï¿½
 
     [Header("Game Scene")]
-    public string gameSceneName = "GameScene"; // ºôµå¿¡ µî·ÏµÈ ¾À ÀÌ¸§
+    public string gameSceneName = "GameScene"; // ï¿½ï¿½ï¿½å¿¡ ï¿½ï¿½Ïµï¿½ ï¿½ï¿½ ï¿½Ì¸ï¿½
 
     void Start()
     {
-        // ½ÃÀÛ »óÅÂ(Options ²¨µÎ±â)
+        // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½(Options ï¿½ï¿½ï¿½Î±ï¿½)
         if (optionsPanel) optionsPanel.SetActive(false);
         if (mainMenuPanel) mainMenuPanel.SetActive(true);
         if (firstOnMain) EventSystem.current.SetSelectedGameObject(firstOnMain.gameObject);
     }
 
-    // --- OnClick ¹ÙÀÎµù¿ë ---
+    // --- OnClick ï¿½ï¿½ï¿½Îµï¿½ï¿½ï¿½ ---
     public void StartGame()
     {
-        // ÇÊ¿äÇÏ¸é ÆäÀÌµå ÄÚ·çÆ¾À¸·Î °¨½Îµµ µÊ
+        // ï¿½Ê¿ï¿½ï¿½Ï¸ï¿½ ï¿½ï¿½ï¿½Ìµï¿½ ï¿½Ú·ï¿½Æ¾ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Îµï¿½ ï¿½ï¿½
         if (!string.IsNullOrEmpty(gameSceneName))
             SceneManager.LoadScene(gameSceneName);
         else

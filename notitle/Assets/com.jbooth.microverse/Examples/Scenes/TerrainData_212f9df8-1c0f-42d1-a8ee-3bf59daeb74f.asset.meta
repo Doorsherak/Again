@@ -10,6 +10,6 @@ AssetOrigin:
   serializedVersion: 1
   productId: 232972
   packageName: MicroVerse
-  packageVersion: 1.7.42
-  assetPath: Packages/com.jbooth.microverse/Examples/Scenes/TerrainData_212f9df8-1c0f-42d1-a8ee-3bf59daeb74f.asset
-  uploadId: 786486
+  packageVersion: 1.7.44
+  assetPath: Assets/com.jbooth.microverse/Examples/Scenes/TerrainData_212f9df8-1c0f-42d1-a8ee-3bf59daeb74f.asset
+  uploadId: 820040

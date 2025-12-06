@@ -1,0 +1,9 @@
+fileFormatVersion: 2
+guid: e3fe75abbf8904145a5d1083c71cb006
+AssetOrigin:
+  serializedVersion: 1
+  productId: 230509
+  packageName: 'Flexalon Pro: 3D & UI Layouts'
+  packageVersion: 4.4.0
+  assetPath: Assets/Flexalon/Editor/Core/FlexalonPreProcessBuild.cs
+  uploadId: 829764

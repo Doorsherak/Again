@@ -13,6 +13,6 @@ AssetOrigin:
   serializedVersion: 1
   productId: 232972
   packageName: MicroVerse
-  packageVersion: 1.7.42
-  assetPath: Packages/com.jbooth.microverse/Scripts/Noise.cs
-  uploadId: 786486
+  packageVersion: 1.7.44
+  assetPath: Assets/com.jbooth.microverse/Scripts/Noise.cs
+  uploadId: 820040

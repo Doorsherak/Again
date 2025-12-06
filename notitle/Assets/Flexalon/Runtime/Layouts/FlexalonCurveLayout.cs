@@ -112,7 +112,7 @@ namespace Flexalon
         public SpacingOptions SpacingType
         {
             get { return _spacingType; }
-            set { _spacingType = value; _node.MarkDirty(); }
+            set { _spacingType = value; Node.MarkDirty(); }
         }
 
         [SerializeField]
@@ -121,7 +121,7 @@ namespace Flexalon
         public float Spacing
         {
             get { return _spacing; }
-            set { _spacing = value; _node.MarkDirty(); }
+            set { _spacing = value; Node.MarkDirty(); }
         }
 
         [SerializeField]
@@ -130,7 +130,7 @@ namespace Flexalon
         public float StartAt
         {
             get { return _startAt; }
-            set { _startAt = value; _node.MarkDirty(); }
+            set { _startAt = value; Node.MarkDirty(); }
         }
 
         /// <summary> Determines how the curve is extended before the beginning and after the end. </summary>
@@ -158,7 +158,7 @@ namespace Flexalon
         public ExtendBehavior BeforeStart
         {
             get { return _beforeStart; }
-            set { _beforeStart = value; _node.MarkDirty(); }
+            set { _beforeStart = value; Node.MarkDirty(); }
         }
 
         [SerializeField]
@@ -167,7 +167,7 @@ namespace Flexalon
         public ExtendBehavior AfterEnd
         {
             get { return _afterEnd; }
-            set { _afterEnd = value; _node.MarkDirty(); }
+            set { _afterEnd = value; Node.MarkDirty(); }
         }
 
         /// <summary> Determines how children should be rotated </summary>
@@ -203,7 +203,7 @@ namespace Flexalon
         public RotationOptions Rotation
         {
             get { return _rotation; }
-            set { _rotation = value; _node.MarkDirty(); }
+            set { _rotation = value; Node.MarkDirty(); }
         }
 
         /// <summary> Adds a new point to the end of the curve. </summary>
@@ -679,7 +679,7 @@ namespace Flexalon
 
         private void OnDrawGizmosSelected()
         {
-            var scale = _node.GetWorldBoxScale(true);
+            var scale = Node.GetWorldBoxScale(true);
             Gizmos.matrix = Matrix4x4.TRS(Vector3.zero, transform.rotation, scale);
 
             for (int i = 0; i < _points.Count; i++)

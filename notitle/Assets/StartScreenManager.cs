@@ -1,22 +1,23 @@
-using UnityEngine;
+癤퓎sing UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using UnityEngine.SceneManagement;
 using UnityEngine.EventSystems;
 using System.Collections;
 
+[RequireComponent(typeof(CanvasGroup))]
 public class StartScreenManager_Safe : MonoBehaviour
 {
-    [Header("Refs (미할당 시 자동 탐색)")]
+    [Header("Refs (auto find if unassigned)")]
     [SerializeField] Button startButton, optionsButton, quitButton;
     [SerializeField] TextMeshProUGUI gameTitle;
-    [SerializeField] GameObject optionsPanel;   // 내부에 CanvasGroup 사용
+    [SerializeField] GameObject optionsPanel;   // uses CanvasGroup inside
     [SerializeField] Slider volumeSlider;
     [SerializeField] TextMeshProUGUI volumeValueText;
     [SerializeField] AudioSource bgm;
 
     [Header("Scene")]
-    [SerializeField] string sceneName = "GameScene"; // 빌드 세팅에 이름/인덱스 등록
+    [SerializeField] string sceneName = "GameScene"; // register name/index in Build Settings
 
     [Header("FX")]
     [Range(0.6f, 1.6f)] public float fadeInDuration = 1.0f;
@@ -24,24 +25,22 @@ public class StartScreenManager_Safe : MonoBehaviour
 
     CanvasGroup rootCg, optionsCg;
     bool isOptionsOpen;
+    bool isLoading;
+    Coroutine optionsRoutine;
 
     void Awake()
     {
-        // 0) EventSystem 보장
-        if (!EventSystem.current)
-        {
-            var es = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
-            DontDestroyOnLoad(es);
-        }
+        // 0) ensure EventSystem (avoid duplicates across scene)
+        EnsureEventSystem();
 
-        // 1) 자동 와이어(미할당 시만)
+        // 1) auto wire (only when null)
         if (!startButton) startButton = GameObject.Find("StartButton")?.GetComponent<Button>();
         if (!optionsButton) optionsButton = GameObject.Find("OptionsButton")?.GetComponent<Button>();
         if (!quitButton) quitButton = GameObject.Find("QuitButton")?.GetComponent<Button>();
         if (!gameTitle) gameTitle = GetComponentInChildren<TextMeshProUGUI>(true);
 
-        // 2) CanvasGroup 보장
-        rootCg = GetComponent<CanvasGroup>(); if (!rootCg) rootCg = gameObject.AddComponent<CanvasGroup>();
+        // 2) ensure CanvasGroup
+        rootCg = GetComponent<CanvasGroup>();
         rootCg.alpha = 0f;
 
         if (optionsPanel)
@@ -59,11 +58,12 @@ public class StartScreenManager_Safe : MonoBehaviour
         if (optionsButton) optionsButton.onClick.AddListener(() => ToggleOptions(true));
         if (quitButton) quitButton.onClick.AddListener(QuitGame);
 
-        // 볼륨 표시(저장은 OptionsManager에서)
+        // volume display (saving handled by OptionsManager)
         float v = PlayerPrefs.GetFloat("MasterVolume", 0.8f);
         if (volumeSlider) volumeSlider.SetValueWithoutNotify(v);
         if (volumeValueText) volumeValueText.text = Mathf.RoundToInt(v * 100) + "%";
         if (bgm) bgm.volume = v;
+        if (volumeSlider) volumeSlider.onValueChanged.AddListener(OnVolumeChanged);
 
         if (EventSystem.current && startButton)
             EventSystem.current.SetSelectedGameObject(startButton.gameObject);
@@ -96,35 +96,45 @@ public class StartScreenManager_Safe : MonoBehaviour
 
     public void StartGame()
     {
-        StartCoroutine(ScreenFader.FadeAndLoad(sceneName, 0.9f, 0.9f)); // ▶ 여기
+        if (isLoading) return;
+        isLoading = true;
+        SetButtonsInteractable(false);
+        StartCoroutine(CoStartGame());
     }
-    IEnumerator CoLoadScene()
+    IEnumerator CoStartGame()
     {
-        // 씬 존재 검사
-        bool canLoadByName = !string.IsNullOrEmpty(sceneName);
-        if (canLoadByName)
+        var targetScene = ResolveSceneName();
+        if (targetScene != null)
         {
-            bool found = false;
-            for (int i = 0; i < SceneManager.sceneCountInBuildSettings; i++)
-            {
-                var p = SceneUtility.GetScenePathByBuildIndex(i);
-                if (p.EndsWith("/" + sceneName + ".unity")) { found = true; break; }
-            }
-            if (!found) { Debug.LogWarning($"[StartScreen] Build Settings에 '{sceneName}'가 없습니다. 인덱스 1로 시도합니다."); canLoadByName = false; }
+            yield return ScreenFader.FadeAndLoad(targetScene, 0.9f, 0.9f);
+            yield break;
         }
-        // 짧은 페이드 아웃
+
+        Debug.LogWarning($"[StartScreen] '{sceneName}' not in Build Settings. Falling back to index 1.");
         for (float t = 0; t < 0.9f; t += Time.unscaledDeltaTime)
         {
             rootCg.alpha = Mathf.Lerp(1, 0, t / 0.9f); yield return null;
         }
-        if (canLoadByName) SceneManager.LoadScene(sceneName);
-        else SceneManager.LoadScene(1); // 첫 씬 다음 인덱스를 기본값으로
+        rootCg.alpha = 0f;
+        SceneManager.LoadScene(1);
+    }
+
+    string ResolveSceneName()
+    {
+        if (string.IsNullOrEmpty(sceneName)) return null;
+        for (int i = 0; i < SceneManager.sceneCountInBuildSettings; i++)
+        {
+            var path = SceneUtility.GetScenePathByBuildIndex(i);
+            if (path.EndsWith("/" + sceneName + ".unity")) return sceneName;
+        }
+        return null;
     }
 
     public void ToggleOptions(bool open)
     {
-        isOptionsOpen = open; StopAllCoroutines();
-        StartCoroutine(CoOptions());
+        isOptionsOpen = open;
+        if (optionsRoutine != null) StopCoroutine(optionsRoutine);
+        optionsRoutine = StartCoroutine(CoOptions());
     }
     public void ToggleOptions() { ToggleOptions(!isOptionsOpen); }
 
@@ -147,6 +157,52 @@ public class StartScreenManager_Safe : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Escape) && isOptionsOpen) ToggleOptions(false);
         if ((Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)) && !isOptionsOpen)
             StartGame();
+    }
+
+    void OnVolumeChanged(float v)
+    {
+        if (volumeValueText) volumeValueText.text = Mathf.RoundToInt(v * 100) + "%";
+        if (bgm) bgm.volume = v;
+    }
+
+    void SetButtonsInteractable(bool value)
+    {
+        if (startButton) startButton.interactable = value;
+        if (optionsButton) optionsButton.interactable = value;
+        if (quitButton) quitButton.interactable = value;
+    }
+
+    void EnsureEventSystem()
+    {
+        // Find even inactive ones to avoid creating duplicates
+#if UNITY_2023_1_OR_NEWER
+        var existing = FindObjectsByType<EventSystem>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+#else
+        var existing = FindObjectsOfType<EventSystem>(true);
+#endif
+        if (existing != null && existing.Length > 0)
+        {
+            // Prefer one in the same scene as this manager
+            EventSystem chosen = null;
+            foreach (var es in existing)
+            {
+                if (es && es.gameObject.scene == gameObject.scene) { chosen = es; break; }
+            }
+            if (!chosen) chosen = existing[0];
+
+            if (chosen && !chosen.gameObject.activeSelf) chosen.gameObject.SetActive(true);
+
+            // Deactivate others to silence duplicate warnings
+            foreach (var es in existing)
+            {
+                if (!es || es == chosen) continue;
+                if (es.gameObject.activeSelf) es.gameObject.SetActive(false);
+            }
+            return;
+        }
+
+        var go = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+        // keep scene-scoped to avoid duplicates when loading other scenes that already have one
     }
 
     public void QuitGame()

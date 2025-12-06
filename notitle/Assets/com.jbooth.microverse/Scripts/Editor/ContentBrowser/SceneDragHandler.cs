@@ -88,8 +88,13 @@ namespace JBooth.MicroVerseCore.Browser
             if (Event.current.type != EventType.DragUpdated && Event.current.type != EventType.DragPerform)
                 return;
 
+#if UNITY_6000_3_OR_NEWER
+            if(browser.position.Contains(Event.current.mousePosition))
+                return;
+#else
             if (EditorWindow.mouseOverWindow == browser)
                 return;
+#endif
 
             object isMicroVerseDraggable = DragAndDrop.GetGenericData( IsMicroverseDraggableId);
 

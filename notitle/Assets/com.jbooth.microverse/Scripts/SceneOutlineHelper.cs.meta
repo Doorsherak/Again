@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 10f68887e4b118343bb80a2fd2a6dbb5
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 232972
+  packageName: MicroVerse
+  packageVersion: 1.7.44
+  assetPath: Assets/com.jbooth.microverse/Scripts/SceneOutlineHelper.cs
+  uploadId: 820040

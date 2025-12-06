@@ -37,6 +37,10 @@ public class PauseManager : MonoBehaviour
     [SerializeField] string pauseRootName = "UI_PauseRoot";
     [SerializeField] string firstSelectedName = "Btn_Pause_Resume";
     [SerializeField] bool createEventSystemIfMissing = true;
+    [SerializeField] bool autoHookButtons = true;          // 버튼 이름 기반 자동 바인딩
+    [SerializeField] string resumeButtonName = "Btn_Pause_Resume";
+    [SerializeField] string restartButtonName = "Btn_Pause_Restart";
+    [SerializeField] string quitButtonName = "Btn_Pause_MainMenu";
     [SerializeField] KeyCode legacyBackupKey = KeyCode.P;  // ESC 보조키
     [SerializeField] bool logVerbose = true;
 
@@ -67,6 +71,7 @@ public class PauseManager : MonoBehaviour
 
         if (autoFindReferences) TryAutoWire("Awake");
         if (autoBuildFallbackUI && pauseRoot == null) BuildFallbackUI();
+        if (autoHookButtons) HookButtons();
 
         if (pauseRoot) pauseRoot.SetActive(false);
         if (fadeGroup) { fadeGroup.alpha = 0; fadeGroup.interactable = false; fadeGroup.blocksRaycasts = false; }
@@ -88,12 +93,19 @@ public class PauseManager : MonoBehaviour
         if (createEventSystemIfMissing) StartCoroutine(EnsureEventSystemDeferred());
         if (autoFindReferences) TryAutoWire("sceneLoaded");
         if (autoBuildFallbackUI && pauseRoot == null) BuildFallbackUI();
+        if (autoHookButtons) HookButtons();
         if (logVerbose) Dump("[sceneLoaded]");
         ApplyCursorPolicy();
     }
 
     void Update()
     {
+        // 메뉴 씬에서는 일시정지 입력을 무시하고 항상 해제 상태 유지
+        if (!IsGameplayScene())
+        {
+            if (IsPaused) Resume();
+            return;
+        }
         if (IsPausePressed()) TogglePause();
     }
 
@@ -205,6 +217,28 @@ public class PauseManager : MonoBehaviour
         if (!firstSelected) { var btn = GameObject.Find(firstSelectedName); if (btn) firstSelected = btn; }
         if (!fadeGroup && pauseRoot) { fadeGroup = pauseRoot.GetComponent<CanvasGroup>(); }
         if (logVerbose) Debug.Log($"[Pause]{tag} Wire → UI={(pauseRoot ? pauseRoot.scene.path : "NULL")}, First={(firstSelected ? firstSelected.name : "NULL")}");
+    }
+
+    void HookButtons()
+    {
+        if (!pauseRoot) return;
+        var buttons = pauseRoot.GetComponentsInChildren<Button>(true);
+        foreach (var b in buttons)
+        {
+            if (!b || string.IsNullOrEmpty(b.name)) continue;
+            if (b.name == resumeButtonName)
+            {
+                b.onClick.RemoveListener(BtnResume); b.onClick.AddListener(BtnResume);
+            }
+            else if (b.name == restartButtonName)
+            {
+                b.onClick.RemoveListener(BtnRestart); b.onClick.AddListener(BtnRestart);
+            }
+            else if (b.name == quitButtonName)
+            {
+                b.onClick.RemoveListener(BtnQuitToTitle); b.onClick.AddListener(BtnQuitToTitle);
+            }
+        }
     }
 
     static bool _creatingES = false; // 동시 생성 가드

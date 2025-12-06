@@ -1,4 +1,4 @@
-// PauseBootstrap_Safe.cs  (¹İ»ç/asmdef ÀÇÁ¸ Á¦°Å, Àü¿ª 1È¸ ¼³Ä¡)
+ï»¿// PauseBootstrap_Safe.cs  (ë°˜ì‚¬/asmdef ì˜ì¡´ ì œê±°, ì „ì—­ 1íšŒ ì„¤ì¹˜)
 using UnityEngine;
 using UnityEngine.EventSystems;
 #if ENABLE_INPUT_SYSTEM
@@ -14,19 +14,20 @@ public class PauseBootstrap_Safe : MonoBehaviour
     {
         if (instance != null) { Destroy(gameObject); return; }
 
-        // 1) ±âÁ¸ ¸Å´ÏÀú°¡ ÀÖ³ª È®ÀÎ
+        // 1) ê¸°ì¡´ ë§¤ë‹ˆì €ê°€ ìˆë‚˜ í™•ì¸
         instance = Object.FindFirstObjectByType<PauseManager>(UnityEngine.FindObjectsInactive.Include);
         if (instance == null)
         {
             var go = new GameObject("PauseManager_Auto");
             instance = go.AddComponent<PauseManager>();
 
-            // ÇÙ½É: ºÎÆ®½ºÆ®·¦¿¡¼­ Á÷Á¢ ¿µ¼ÓÈ­ ¡æ v3ÀÇ makePersistent ¼³Á¤ ºÒÇÊ¿ä
+            // í•µì‹¬: ë¶€íŠ¸ìŠ¤íŠ¸ë©ì—ì„œ ì§ì ‘ ì˜ì†í™” â†’ v3ì˜ makePersistent ì„¤ì • ë¶ˆí•„ìš”
             DontDestroyOnLoad(go);
         }
 
-        // 2) EventSystem º¸Àå
-        if (EventSystem.current == null)
+        // 2) EventSystem ë³´ì¥
+        var existing = FindExistingEventSystem();
+        if (existing == null)
         {
             var es = new GameObject("EventSystem").AddComponent<EventSystem>();
 #if ENABLE_INPUT_SYSTEM
@@ -34,9 +35,28 @@ public class PauseBootstrap_Safe : MonoBehaviour
 #else
             es.gameObject.AddComponent<StandaloneInputModule>();
 #endif
+            existing = es;
+        }
+        else if (!existing.isActiveAndEnabled)
+        {
+            existing.gameObject.SetActive(true);
         }
 
-        // 3) (¼±ÅÃ) ¿¡µğÅÍ¿¡¼­ ¹Ù·Î È®ÀÎÇÏ°í ½ÍÀ¸¸é ¾Æ·¡ ÁÖ¼® ÇØÁ¦
-        // instance.Pause();  // °­Á¦·Î ÇÑ ¹ø ¶ç¿ö º¸±â
+        // 3) (ì„ íƒ) ì—ë””í„°ì—ì„œ ë°”ë¡œ í™•ì¸í•˜ê³  ì‹¶ìœ¼ë©´ ì•„ë˜ ì£¼ì„ í•´ì œ
+        // instance.Pause();  // ê°•ì œë¡œ í•œ ë²ˆ ë„ì›Œ ë³´ê¸°
+    }
+
+    static EventSystem FindExistingEventSystem()
+    {
+#if UNITY_2023_1_OR_NEWER
+        var list = Object.FindObjectsByType<EventSystem>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+#else
+        var list = Object.FindObjectsOfType<EventSystem>(true);
+#endif
+        if (list == null || list.Length == 0) return null;
+
+        // prefer an active one
+        foreach (var es in list) if (es && es.isActiveAndEnabled) return es;
+        return list[0];
     }
 }

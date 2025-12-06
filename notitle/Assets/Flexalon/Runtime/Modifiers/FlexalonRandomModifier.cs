@@ -130,12 +130,10 @@ namespace Flexalon
             }
         }
 
-        [SerializeField]
-        private Vector3 _positionMin => new Vector3(_positionMinX, _positionMinY, _positionMinZ);
         /// <summary> Minimum position value. </summary>
         public Vector3 PositionMin
         {
-            get => _positionMin;
+            get => new Vector3(_positionMinX, _positionMinY, _positionMinZ);
             set
             {
                 _positionMinX = value.x;
@@ -148,12 +146,10 @@ namespace Flexalon
             }
         }
 
-        [SerializeField]
-        private Vector3 _positionMax => new Vector3(_positionMaxX, _positionMaxY, _positionMaxZ);
         /// <summary> Maximum position value. </summary>
         public Vector3 PositionMax
         {
-            get => _positionMax;
+            get => new Vector3(_positionMaxX, _positionMaxY, _positionMaxZ);
             set
             {
                 _positionMaxX = value.x;

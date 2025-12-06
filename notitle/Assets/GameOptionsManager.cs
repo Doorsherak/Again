@@ -277,7 +277,6 @@ public class GameOptionsManager : MonoBehaviour
 #endif
 
         Debug.Log($"[Options] RES={Screen.width}x{Screen.height} MODE={Screen.fullScreenMode} FS={Screen.fullScreen}");
-        if (volumeText) volumeText.text = $"{Screen.width}×{Screen.height}";
 
         applyRoutine = null;
     }

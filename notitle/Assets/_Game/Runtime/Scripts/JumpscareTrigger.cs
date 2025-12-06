@@ -1,57 +1,60 @@
-using System.Collections;
+ï»¿using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 [DisallowMultipleComponent]
 public class JumpscareTrigger : MonoBehaviour
 {
-    [Header("¿ÀºêÁ§Æ® ÂüÁ¶")]
-    public GameObject monster;                  // Á¡ÇÁ½ºÄÉ¾î¿¡ ¾µ ¸ó½ºÅÍ(¶Ç´Â »óÀÚ, ½Ç·ç¿§)
-    public CanvasGroup fadeCanvasGroup;         // È­¸éÀ» ±î¸Ä°Ô µ¤À» CanvasGroup
-    public MonoBehaviour playerController;      // ÇÃ·¹ÀÌ¾î ÀÌµ¿ ½ºÅ©¸³Æ®
-    public AudioSource sfxSource;               // Á¡ÇÁ½ºÄÉ¾î SFX Àç»ı¿ë AudioSource(Ä«¸Ş¶ó ÂÊ ÃßÃµ)
-    public AudioClip jumpscareClip;             // Á¡ÇÁ½ºÄÉ¾î È¿°úÀ½
+    [Header("ì˜¤ë¸Œì íŠ¸ ì°¸ì¡°")]
+    public GameObject monster;                  // ì í”„ìŠ¤ì¼€ì–´ì— ì“¸ ëª¬ìŠ¤í„°(ë˜ëŠ” ìƒì, ì‹¤ë£¨ì—£)
+    public CanvasGroup fadeCanvasGroup;         // í™”ë©´ì„ ê¹Œë§£ê²Œ ë®ì„ CanvasGroup
+    public MonoBehaviour playerController;      // í”Œë ˆì´ì–´ ì´ë™ ìŠ¤í¬ë¦½íŠ¸
+    public AudioSource sfxSource;               // ì í”„ìŠ¤ì¼€ì–´ SFX ì¬ìƒìš© AudioSource(ì¹´ë©”ë¼ ìª½ ì¶”ì²œ)
+    public AudioClip jumpscareClip;             // ì í”„ìŠ¤ì¼€ì–´ íš¨ê³¼ìŒ
 
-    [Header("ºôµå¾÷ ¿É¼Ç")]
-    public bool usePreScare = true;             // ºôµå¾÷(¶óÀÌÆ®/¾Úºñ¾ğ½º) »ç¿ëÇÒÁö
-    public float preScareDuration = 2.0f;       // ºôµå¾÷ ÀüÃ¼ ±æÀÌ
-    public Light[] flickerLights;               // ±ôºıÀÌ°Ô ¸¸µé ¶óÀÌÆ®µé
-    public bool useAmbienceRamp = true;         // ¾Úºñ¾ğ½º º¼·ı ¿Ã¸±Áö
-    public AudioSource ambienceSource;          // ¹è°æ ¾Úºñ¾ğ½º AudioSource
-    public float ambienceTargetVolume = 0.8f;   // ºôµå¾÷ ³¡¿¡¼­ÀÇ ¸ñÇ¥ º¼·ı
+    [Header("ë¹Œë“œì—… ì˜µì…˜")]
+    public bool usePreScare = true;             // ë¹Œë“œì—…(ë¼ì´íŠ¸/ì•°ë¹„ì–¸ìŠ¤) ì‚¬ìš©í• ì§€
+    public float preScareDuration = 2.0f;       // ë¹Œë“œì—… ì „ì²´ ê¸¸ì´
+    public Light[] flickerLights;               // ê¹œë¹¡ì´ê²Œ ë§Œë“¤ ë¼ì´íŠ¸ë“¤
+    public bool useAmbienceRamp = true;         // ì•°ë¹„ì–¸ìŠ¤ ë³¼ë¥¨ ì˜¬ë¦´ì§€
+    public AudioSource ambienceSource;          // ë°°ê²½ ì•°ë¹„ì–¸ìŠ¤ AudioSource
+    public float ambienceTargetVolume = 0.8f;   // ë¹Œë“œì—… ëì—ì„œì˜ ëª©í‘œ ë³¼ë¥¨
     public float flickerIntervalMin = 0.05f;
     public float flickerIntervalMax = 0.2f;
 
-    [Header("¸ŞÀÎ Á¡ÇÁ½ºÄÉ¾î Å¸ÀÌ¹Ö")]
-    public float delayBeforeMonster = 0.0f;     // ºôµå¾÷ ÀÌÈÄ ¸ó½ºÅÍ µîÀå±îÁö Áö¿¬
-    public float soundToMonsterOffset = -0.05f; // À½¿ø vs ¸ó½ºÅÍ Å¸ÀÌ¹Ö ¿ÀÇÁ¼Â(+, - °¡´É)
-    public float timingJitter = 0.15f;          // ¸Å¹ø ·£´ıÀ¸·Î Èçµé¸± ½Ã°£(´ÜÁ¶·Î¿ò ¹æÁö)
-    public float holdOnMonster = 0.8f;          // ¸ó½ºÅÍ°¡ º¸ÀÌ´Â Ã¤·Î ¸ØÃç ÀÖ´Â ½Ã°£
+    [Header("ë©”ì¸ ì í”„ìŠ¤ì¼€ì–´ íƒ€ì´ë°")]
+    public float delayBeforeMonster = 0.0f;     // ë¹Œë“œì—… ì´í›„ ëª¬ìŠ¤í„° ë“±ì¥ê¹Œì§€ ì§€ì—°
+    public float soundToMonsterOffset = -0.05f; // ìŒì› vs ëª¬ìŠ¤í„° íƒ€ì´ë° ì˜¤í”„ì…‹(+, - ê°€ëŠ¥)
+    public float timingJitter = 0.15f;          // ë§¤ë²ˆ ëœë¤ìœ¼ë¡œ í”ë“¤ë¦´ ì‹œê°„(ë‹¨ì¡°ë¡œì›€ ë°©ì§€)
+    public float holdOnMonster = 0.8f;          // ëª¬ìŠ¤í„°ê°€ ë³´ì´ëŠ” ì±„ë¡œ ë©ˆì¶° ìˆëŠ” ì‹œê°„
 
-    [Header("ÆäÀÌµå / Àç½ÃÀÛ")]
-    public float fadeDuration = 1.0f;           // È­¸éÀÌ ¿ÏÀüÈ÷ ±î¸ÅÁú ¶§±îÁö
-    public float delayBeforeRestart = 0.5f;     // ¿ÏÀü ¾ÏÀü ÀÌÈÄ ´ë±â
-    public bool autoRestart = true;             // ÀÚµ¿À¸·Î ¾À ´Ù½Ã ·ÎµåÇÒÁö
-    public bool showCursorOnEnd = false;        // ÆäÀÌµå ÈÄ Ä¿¼­ º¸ÀÌ°Ô(¸Ş´º¿ë)
+    [Header("í˜ì´ë“œ / ì¬ì‹œì‘")]
+    public float fadeDuration = 1.0f;           // í™”ë©´ì´ ì™„ì „íˆ ê¹Œë§¤ì§ˆ ë•Œê¹Œì§€
+    public float delayBeforeRestart = 0.5f;     // ì™„ì „ ì•”ì „ ì´í›„ ëŒ€ê¸°
+    public bool autoRestart = true;             // ìë™ìœ¼ë¡œ ì”¬ ë‹¤ì‹œ ë¡œë“œí• ì§€
+    public bool showCursorOnEnd = false;        // í˜ì´ë“œ í›„ ì»¤ì„œ ë³´ì´ê²Œ(ë©”ë‰´ìš©)
 
-    [Header("Ä«¸Ş¶ó ½¦ÀÌÅ© ¿É¼Ç")]
+    [Header("ì¹´ë©”ë¼ ì‰ì´í¬ ì˜µì…˜")]
     public bool useCameraShake = true;
-    public Transform cameraTransform;           // Èçµé Ä«¸Ş¶ó Transform
+    public Transform cameraTransform;           // í”ë“¤ ì¹´ë©”ë¼ Transform
     public float shakeDuration = 0.3f;
     public float shakeIntensity = 0.1f;
 
-    [Header("µğ¹ö±× / °³¹ß¿ë")]
-    public bool triggerOnlyOnce = true;         // true¸é ÇÑ ¹ø¸¸ ¹ßµ¿
-    public bool editorOnly = false;             // ¿¡µğÅÍ¿¡¼­¸¸ ¹ßµ¿(ºôµå¿¡¼± ¹«½Ã)
+    [Header("ë””ë²„ê·¸ / ê°œë°œìš©")]
+    public bool triggerOnlyOnce = true;         // trueë©´ í•œ ë²ˆë§Œ ë°œë™
+    public bool editorOnly = false;             // ì—ë””í„°ì—ì„œë§Œ ë°œë™(ë¹Œë“œì—ì„  ë¬´ì‹œ)
 
     bool _triggered = false;
     Vector3 _originalCamPos;
 
     float _originalAmbienceVolume;
     bool[] _originalLightEnabled;
+    Collider _collider;
 
     void Awake()
     {
+        _collider = GetComponent<Collider>();
+
         if (fadeCanvasGroup != null)
             fadeCanvasGroup.alpha = 0f;
 
@@ -85,48 +88,49 @@ public class JumpscareTrigger : MonoBehaviour
 #endif
 
         _triggered = true;
+        if (_collider && triggerOnlyOnce) _collider.enabled = false;
         StartCoroutine(JumpscareSequence());
     }
 
     IEnumerator JumpscareSequence()
     {
-        // 1. ÇÃ·¹ÀÌ¾î Á¶ÀÛ ¸·±â
+        // 1. í”Œë ˆì´ì–´ ì¡°ì‘ ë§‰ê¸°
         if (playerController != null)
             playerController.enabled = false;
 
-        // 2. ºôµå¾÷ ´Ü°è (¶óÀÌÆ® ±ôºıÀÓ + ¾Úºñ¾ğ½º º¼·ı ¾÷)
+        // 2. ë¹Œë“œì—… ë‹¨ê³„ (ë¼ì´íŠ¸ ê¹œë¹¡ì„ + ì•°ë¹„ì–¸ìŠ¤ ë³¼ë¥¨ ì—…)
         if (usePreScare)
             yield return StartCoroutine(PreScare());
 
-        // 3. ¸ŞÀÎ Á¡ÇÁ½ºÄÉ¾î
+        // 3. ë©”ì¸ ì í”„ìŠ¤ì¼€ì–´
         float jitter = Random.Range(-timingJitter, timingJitter);
 
-        // 3-1. »ç¿îµå ¸ÕÀú / ³ªÁß ¼ø¼­ Á¶Á¤
-        float soundTime = Mathf.Min(0f, soundToMonsterOffset);
-        float monsterTime = Mathf.Max(0f, soundToMonsterOffset);
+        // 3-1. ì‚¬ìš´ë“œ/ëª¬ìŠ¤í„° íƒ€ì´ë° ë¶„ë¦¬ (ìŒìˆ˜ ì˜¤í”„ì…‹ë„ ì¦‰ì‹œ ì²˜ë¦¬)
+        float monsterDelay = Mathf.Max(0f, delayBeforeMonster + jitter);
+        float soundDelay = Mathf.Max(0f, delayBeforeMonster + soundToMonsterOffset + jitter);
 
-        // »ç¿îµå
+        // ì‚¬ìš´ë“œ
         if (jumpscareClip != null && sfxSource != null)
         {
-            yield return new WaitForSeconds(soundTime + delayBeforeMonster + jitter);
+            if (soundDelay > 0f) yield return new WaitForSeconds(soundDelay);
             sfxSource.PlayOneShot(jumpscareClip);
         }
 
-        // ¸ó½ºÅÍ + Ä«¸Ş¶ó ½¦ÀÌÅ©
-        yield return new WaitForSeconds(monsterTime);
+        // ëª¬ìŠ¤í„° + ì¹´ë©”ë¼ ì‰ì´í¬
+        if (monsterDelay > 0f) yield return new WaitForSeconds(monsterDelay);
         if (monster != null)
             monster.SetActive(true);
 
         if (useCameraShake && cameraTransform != null)
             StartCoroutine(CameraShake());
 
-        // 4. ¸ó½ºÅÍ°¡ º¸ÀÌ´Â Ã¤·Î Àá±ñ Á¤Áö(¿©¿î)
+        // 4. ëª¬ìŠ¤í„°ê°€ ë³´ì´ëŠ” ì±„ë¡œ ì ê¹ ì •ì§€(ì—¬ìš´)
         yield return new WaitForSeconds(holdOnMonster);
 
-        // 5. È­¸é ÆäÀÌµå¾Æ¿ô
+        // 5. í™”ë©´ í˜ì´ë“œì•„ì›ƒ
         yield return StartCoroutine(FadeOut());
 
-        // 6. Àç½ÃÀÛ or ¸ØÃß±â
+        // 6. ì¬ì‹œì‘ or ë©ˆì¶”ê¸°
         if (showCursorOnEnd)
         {
             Cursor.lockState = CursorLockMode.None;
@@ -138,6 +142,12 @@ public class JumpscareTrigger : MonoBehaviour
             yield return new WaitForSeconds(delayBeforeRestart);
             Scene current = SceneManager.GetActiveScene();
             SceneManager.LoadScene(current.buildIndex);
+        }
+        else
+        {
+            // ìë™ ì¬ì‹œì‘ì„ ì‚¬ìš©í•˜ì§€ ì•Šìœ¼ë©´ í”Œë ˆì´ì–´ ì»¨íŠ¸ë¡¤ì„ ëŒë ¤ì¤Œ
+            if (playerController != null) playerController.enabled = true;
+            if (monster != null) monster.SetActive(false);
         }
     }
 
@@ -151,14 +161,14 @@ public class JumpscareTrigger : MonoBehaviour
             float dt = Time.deltaTime;
             elapsed += dt;
 
-            // ¾Úºñ¾ğ½º º¼·ı ¼­¼­È÷ ¿Ã¸®±â
+            // ì•°ë¹„ì–¸ìŠ¤ ë³¼ë¥¨ ì„œì„œíˆ ì˜¬ë¦¬ê¸°
             if (useAmbienceRamp && ambienceSource != null)
             {
                 float t = Mathf.Clamp01(elapsed / preScareDuration);
                 ambienceSource.volume = Mathf.Lerp(_originalAmbienceVolume, ambienceTargetVolume, t);
             }
 
-            // ¶óÀÌÆ® ±ôºıÀÓ
+            // ë¼ì´íŠ¸ ê¹œë¹¡ì„
             if (flickerLights != null && flickerLights.Length > 0)
             {
                 nextFlickerTime -= dt;
@@ -168,7 +178,7 @@ public class JumpscareTrigger : MonoBehaviour
                     for (int i = 0; i < flickerLights.Length; i++)
                     {
                         if (flickerLights[i] == null) continue;
-                        // enabled Åä±Û
+                        // enabled í† ê¸€
                         flickerLights[i].enabled = !flickerLights[i].enabled;
                     }
                 }
@@ -177,7 +187,7 @@ public class JumpscareTrigger : MonoBehaviour
             yield return null;
         }
 
-        // ºôµå¾÷ ³¡³ª¸é ¶óÀÌÆ®/¾Úºñ¾ğ½º ¿ø·¡´ë·Î (¿øÇÏ¸é ¿©±â ¾È µ¹·Áµµ µÊ)
+        // ë¹Œë“œì—… ëë‚˜ë©´ ë¼ì´íŠ¸/ì•°ë¹„ì–¸ìŠ¤ ì›ë˜ëŒ€ë¡œ (ì›í•˜ë©´ ì—¬ê¸° ì•ˆ ëŒë ¤ë„ ë¨)
         if (useAmbienceRamp && ambienceSource != null)
             ambienceSource.volume = ambienceTargetVolume;
 
@@ -232,7 +242,7 @@ public class JumpscareTrigger : MonoBehaviour
 
     void OnDrawGizmosSelected()
     {
-        // ¾À ºä¿¡¼­ Æ®¸®°Å ¿µ¿ª »¡°£ »óÀÚ·Î Ç¥½Ã
+        // ì”¬ ë·°ì—ì„œ íŠ¸ë¦¬ê±° ì˜ì—­ ë¹¨ê°„ ìƒìë¡œ í‘œì‹œ
         Collider col = GetComponent<Collider>();
         if (col == null) return;
 

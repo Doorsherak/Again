@@ -28,7 +28,7 @@ namespace Flexalon
             {
                 _radius = value;
                 _initialRadius = InitialRadiusOptions.Fixed;
-                _node.MarkDirty();
+                Node.MarkDirty();
             }
         }
 
@@ -60,7 +60,7 @@ namespace Flexalon
         public InitialRadiusOptions InitialRadius
         {
             get { return _initialRadius; }
-            set { _initialRadius = value; _node.MarkDirty(); }
+            set { _initialRadius = value; Node.MarkDirty(); }
         }
 
         [SerializeField]
@@ -69,7 +69,7 @@ namespace Flexalon
         public bool Spiral
         {
             get { return _spiral; }
-            set { _spiral = value; _node.MarkDirty(); }
+            set { _spiral = value; Node.MarkDirty(); }
         }
 
         [SerializeField]
@@ -78,7 +78,7 @@ namespace Flexalon
         public float SpiralSpacing
         {
             get { return _spiralSpacing; }
-            set { _spiralSpacing = value; _node.MarkDirty(); }
+            set { _spiralSpacing = value; Node.MarkDirty(); }
         }
 
         /// <summary> Determines how the space between children is distributed. </summary>
@@ -97,7 +97,7 @@ namespace Flexalon
         public SpacingOptions SpacingType
         {
             get { return _spacingType; }
-            set { _spacingType = value; _node.MarkDirty(); }
+            set { _spacingType = value; Node.MarkDirty(); }
         }
 
         [SerializeField]
@@ -106,7 +106,7 @@ namespace Flexalon
         public float SpacingDegrees
         {
             get { return _spacingDegrees; }
-            set { _spacingDegrees = value; _node.MarkDirty(); }
+            set { _spacingDegrees = value; Node.MarkDirty(); }
         }
 
         /// <summary> Determines if and how the radius changes. </summary>
@@ -130,7 +130,7 @@ namespace Flexalon
         public RadiusOptions RadiusType
         {
             get { return _radiusType; }
-            set { _radiusType = value; _node.MarkDirty(); }
+            set { _radiusType = value; Node.MarkDirty(); }
         }
 
         [SerializeField]
@@ -139,7 +139,7 @@ namespace Flexalon
         public float RadiusStep
         {
             get { return _radiusStep; }
-            set { _radiusStep = value; _node.MarkDirty(); }
+            set { _radiusStep = value; Node.MarkDirty(); }
         }
 
         [SerializeField]
@@ -149,7 +149,7 @@ namespace Flexalon
         public float StartAtDegrees
         {
             get { return _startAtDegrees; }
-            set { _startAtDegrees = value; _node.MarkDirty(); }
+            set { _startAtDegrees = value; Node.MarkDirty(); }
         }
 
         /// <summary> Determines how children should be rotated. </summary>
@@ -177,7 +177,7 @@ namespace Flexalon
         public RotateOptions Rotate
         {
             get { return _rotate; }
-            set { _rotate = value; _node.MarkDirty(); }
+            set { _rotate = value; Node.MarkDirty(); }
         }
 
         [SerializeField, FormerlySerializedAs("_verticalAlign")]
@@ -188,7 +188,7 @@ namespace Flexalon
         public Align PlaneAlign
         {
             get { return _planeAlign; }
-            set { _planeAlign = value; _node.MarkDirty(); }
+            set { _planeAlign = value; Node.MarkDirty(); }
         }
 
         private float GetSpacing(FlexalonNode node)
@@ -511,7 +511,7 @@ namespace Flexalon
 
         void OnDrawGizmosSelected()
         {
-            if (_node != null)
+            if (Node != null)
             {
                 var (circleAxis1, circleAxis2) = Math.GetPlaneAxesInt(_plane);
 
@@ -519,9 +519,9 @@ namespace Flexalon
                 Gizmos.color = new Color(1, 1, 0, 0.5f);
                 Gizmos.matrix = Matrix4x4.TRS(transform.position, transform.rotation, transform.lossyScale);
                 int segments = 30;
-                var scale = _node.GetWorldBoxScale(true);
+                var scale = Node.GetWorldBoxScale(true);
 
-                var radius = GetRadius(_node.Result.AdapterBounds.size, circleAxis1, circleAxis2);
+                var radius = GetRadius(Node.Result.AdapterBounds.size, circleAxis1, circleAxis2);
 
                 for (int i = 0; i < segments; i++)
                 {

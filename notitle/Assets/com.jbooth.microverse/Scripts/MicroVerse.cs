@@ -430,6 +430,7 @@ namespace JBooth.MicroVerseCore
                 if (value == false && old == true && OnFinishedUpdating != null)
                 {
                     OnFinishedUpdating.Invoke();
+                    SceneOutlineHelper.EnableOutlines();
                 }
             }
         }
@@ -958,13 +959,15 @@ namespace JBooth.MicroVerseCore
             if (OnBeginUpdating != null)
                 OnBeginUpdating.Invoke();
 
+            SceneOutlineHelper.DisableOutlines();
+
 #if UNITY_EDITOR && __MICROSPLAT__ && __MICROSPLAT_TESSELLATION__
             if (proxyRenderMode == ProxyRenderMode.ProxyWhileUpdating && !noAsync)
             {
                 IsUsingProxyRenderer = true;
             }
 #endif
-            
+
             Profiler.BeginSample("MicroVerse::Modify Terrain");
             Profiler.BeginSample("Sync/Cull Terrain List");
             IsHeightSyncd = false;
@@ -1451,6 +1454,9 @@ namespace JBooth.MicroVerseCore
         {
             if (OnCancelUpdating != null)
                 OnCancelUpdating.Invoke();
+
+            SceneOutlineHelper.EnableOutlines();
+
 #if __MICROVERSE_VEGETATION__ || __MICROVERSE_OBJECTS__
             spawnProcessor.Cancel(dataCache);
 #endif

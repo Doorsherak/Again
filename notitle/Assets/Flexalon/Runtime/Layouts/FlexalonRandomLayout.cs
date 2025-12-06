@@ -356,7 +356,7 @@ namespace Flexalon
             {
                 _horizontalAlign = value;
                 _randomizePositionX = false;
-                _node.MarkDirty();
+                Node.MarkDirty();
             }
         }
 
@@ -370,7 +370,7 @@ namespace Flexalon
             {
                 _verticalAlign = value;
                 _randomizePositionY = false;
-                _node.MarkDirty();
+                Node.MarkDirty();
             }
         }
 
@@ -384,7 +384,7 @@ namespace Flexalon
             {
                 _depthAlign = value;
                 _randomizePositionZ = false;
-                _node.MarkDirty();
+                Node.MarkDirty();
             }
         }
 

@@ -18,7 +18,7 @@ namespace Flexalon
         public Align HorizontalAlign
         {
             get { return _horizontalAlign; }
-            set { _horizontalAlign = value; _node.MarkDirty(); }
+            set { _horizontalAlign = value; Node.MarkDirty(); }
         }
 
         [SerializeField]
@@ -27,7 +27,7 @@ namespace Flexalon
         public Align VerticalAlign
         {
             get { return _verticalAlign; }
-            set { _verticalAlign = value; _node.MarkDirty(); }
+            set { _verticalAlign = value; Node.MarkDirty(); }
         }
 
         [SerializeField]
@@ -36,7 +36,7 @@ namespace Flexalon
         public Align DepthAlign
         {
             get { return _depthAlign; }
-            set { _depthAlign = value; _node.MarkDirty(); }
+            set { _depthAlign = value; Node.MarkDirty(); }
         }
 
         [SerializeField]
@@ -45,7 +45,7 @@ namespace Flexalon
         public Align HorizontalPivot
         {
             get { return _horizontalPivot; }
-            set { _horizontalPivot = value; _node.MarkDirty(); }
+            set { _horizontalPivot = value; Node.MarkDirty(); }
         }
 
         [SerializeField]
@@ -54,7 +54,7 @@ namespace Flexalon
         public Align VerticalPivot
         {
             get { return _verticalPivot; }
-            set { _verticalPivot = value; _node.MarkDirty(); }
+            set { _verticalPivot = value; Node.MarkDirty(); }
         }
 
         [SerializeField]
@@ -63,7 +63,7 @@ namespace Flexalon
         public Align DepthPivot
         {
             get { return _depthPivot; }
-            set { _depthPivot = value; _node.MarkDirty(); }
+            set { _depthPivot = value; Node.MarkDirty(); }
         }
 
         /// <inheritdoc />
