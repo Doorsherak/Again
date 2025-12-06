@@ -22,6 +22,11 @@ public class StartScreenManager_Safe : MonoBehaviour
     [Header("FX")]
     [Range(0.6f, 1.6f)] public float fadeInDuration = 1.0f;
     public float buttonStagger = 0.06f;
+    [Header("UI SFX/FX")]
+    [SerializeField] AudioSource uiAudio;
+    [SerializeField] AudioClip hoverClip;
+    [SerializeField] AudioClip clickClip;
+    [SerializeField] bool autoAttachButtonFx = true;
 
     CanvasGroup rootCg, optionsCg;
     bool isOptionsOpen;
@@ -57,6 +62,12 @@ public class StartScreenManager_Safe : MonoBehaviour
         if (startButton) startButton.onClick.AddListener(StartGame);
         if (optionsButton) optionsButton.onClick.AddListener(() => ToggleOptions(true));
         if (quitButton) quitButton.onClick.AddListener(QuitGame);
+        if (autoAttachButtonFx)
+        {
+            AttachButtonFx(startButton);
+            AttachButtonFx(optionsButton);
+            AttachButtonFx(quitButton);
+        }
 
         // volume display (saving handled by OptionsManager)
         float v = PlayerPrefs.GetFloat("MasterVolume", 0.8f);
@@ -163,6 +174,16 @@ public class StartScreenManager_Safe : MonoBehaviour
     {
         if (volumeValueText) volumeValueText.text = Mathf.RoundToInt(v * 100) + "%";
         if (bgm) bgm.volume = v;
+    }
+
+    void AttachButtonFx(Button btn)
+    {
+        if (!btn) return;
+        var fx = btn.GetComponent<HorrorButtonFx>();
+        if (!fx) fx = btn.gameObject.AddComponent<HorrorButtonFx>();
+        fx.audioSource = uiAudio;
+        fx.hoverClip = hoverClip;
+        fx.clickClip = clickClip;
     }
 
     void SetButtonsInteractable(bool value)
