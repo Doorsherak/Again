@@ -27,6 +27,20 @@ public class StartScreenManager_Safe : MonoBehaviour
     [SerializeField] AudioClip hoverClip;
     [SerializeField] AudioClip clickClip;
     [SerializeField] bool autoAttachButtonFx = true;
+    [Header("Button Theme")]
+    [SerializeField] Color btnNormal = new Color(0.07f, 0.07f, 0.1f, 0.95f);
+    [SerializeField] Color btnHighlight = new Color(0.14f, 0.84f, 1f, 0.9f);
+    [SerializeField] Color btnPressed = new Color(0.05f, 0.45f, 0.65f, 0.9f);
+    [SerializeField] Color btnDisabled = new Color(0.12f, 0.12f, 0.14f, 0.4f);
+    [SerializeField] Color btnTextColor = new Color(0.85f, 0.9f, 0.95f, 1f);
+    [SerializeField] float btnFadeDuration = 0.08f;
+    [Header("Intro Overlay")]
+    [SerializeField] CanvasGroup introOverlay; // 풀스크린 검정 + TMP 텍스트 컨테이너
+    [SerializeField] TextMeshProUGUI introLine1;
+    [SerializeField] TextMeshProUGUI introLine2;
+    [SerializeField] TextMeshProUGUI introLine3;
+    [SerializeField] float introHold = 2.5f;
+    [SerializeField] float introFade = 0.7f;
 
     CanvasGroup rootCg, optionsCg;
     bool isOptionsOpen;
@@ -62,6 +76,9 @@ public class StartScreenManager_Safe : MonoBehaviour
         if (startButton) startButton.onClick.AddListener(StartGame);
         if (optionsButton) optionsButton.onClick.AddListener(() => ToggleOptions(true));
         if (quitButton) quitButton.onClick.AddListener(QuitGame);
+        ApplyButtonTheme(startButton);
+        ApplyButtonTheme(optionsButton);
+        ApplyButtonTheme(quitButton);
         if (autoAttachButtonFx)
         {
             AttachButtonFx(startButton);
@@ -114,6 +131,23 @@ public class StartScreenManager_Safe : MonoBehaviour
     }
     IEnumerator CoStartGame()
     {
+        if (introOverlay)
+        {
+            introOverlay.gameObject.SetActive(true);
+            introOverlay.alpha = 1f;
+            if (introLine1) introLine1.text = "피실험체 번호: 482";
+            if (introLine2) introLine2.text = "투약 완료. 환각 반응 테스트를 시작합니다.";
+            if (introLine3) introLine3.text = "생존하십시오.";
+            yield return new WaitForSecondsRealtime(introHold);
+            for (float t = 0; t < introFade; t += Time.unscaledDeltaTime)
+            {
+                float k = Mathf.Clamp01(t / introFade);
+                introOverlay.alpha = 1f - k;
+                yield return null;
+            }
+            introOverlay.alpha = 0f;
+        }
+
         var targetScene = ResolveSceneName();
         if (targetScene != null)
         {
@@ -184,6 +218,23 @@ public class StartScreenManager_Safe : MonoBehaviour
         fx.audioSource = uiAudio;
         fx.hoverClip = hoverClip;
         fx.clickClip = clickClip;
+    }
+
+    void ApplyButtonTheme(Button btn)
+    {
+        if (!btn) return;
+        var colors = btn.colors;
+        colors.normalColor = btnNormal;
+        colors.highlightedColor = btnHighlight;
+        colors.pressedColor = btnPressed;
+        colors.disabledColor = btnDisabled;
+        colors.selectedColor = btnHighlight;
+        colors.colorMultiplier = 1f;
+        colors.fadeDuration = btnFadeDuration;
+        btn.colors = colors;
+
+        var tmp = btn.GetComponentInChildren<TextMeshProUGUI>(true);
+        if (tmp) tmp.color = btnTextColor;
     }
 
     void SetButtonsInteractable(bool value)
