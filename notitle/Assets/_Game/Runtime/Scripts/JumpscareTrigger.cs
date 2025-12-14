@@ -40,6 +40,11 @@ public class JumpscareTrigger : MonoBehaviour
     public float shakeDuration = 0.3f;
     public float shakeIntensity = 0.1f;
 
+    [Header("몬스터 배치(선택)")]
+    public bool placeMonsterAtCamera = true;    // 실패/외부 트리거에서도 확실히 보이도록 카메라 앞에 배치
+    public Vector3 monsterCameraLocalPos = new Vector3(0f, -0.15f, 0.75f);
+    public Vector3 monsterCameraLocalEuler = new Vector3(0f, 180f, 0f);
+
     [Header("디버그 / 개발용")]
     public bool triggerOnlyOnce = true;         // true면 한 번만 발동
     public bool editorOnly = false;             // 에디터에서만 발동(빌드에선 무시)
@@ -80,16 +85,30 @@ public class JumpscareTrigger : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        if (triggerOnlyOnce && _triggered) return;
         if (!other.CompareTag("Player")) return;
+        Trigger();
+    }
+
+    // 다른 시스템(실패 처리 등)에서 직접 호출할 수 있도록 공개 트리거 제공
+    public void Trigger()
+    {
+        TryTrigger();
+    }
+
+    // 코드에서 성공/실패(이미 발동됨 등) 확인용
+    public bool TryTrigger()
+    {
+        if (triggerOnlyOnce && _triggered) return false;
 
 #if UNITY_EDITOR
-        if (editorOnly && !Application.isEditor) return;
+        if (editorOnly && !Application.isEditor) return false;
 #endif
 
         _triggered = true;
+        if (!_collider) _collider = GetComponent<Collider>();
         if (_collider && triggerOnlyOnce) _collider.enabled = false;
         StartCoroutine(JumpscareSequence());
+        return true;
     }
 
     IEnumerator JumpscareSequence()
@@ -119,7 +138,14 @@ public class JumpscareTrigger : MonoBehaviour
         // 몬스터 + 카메라 쉐이크
         if (monsterDelay > 0f) yield return new WaitForSeconds(monsterDelay);
         if (monster != null)
+        {
+            if (placeMonsterAtCamera && cameraTransform != null)
+            {
+                monster.transform.position = cameraTransform.TransformPoint(monsterCameraLocalPos);
+                monster.transform.rotation = cameraTransform.rotation * Quaternion.Euler(monsterCameraLocalEuler);
+            }
             monster.SetActive(true);
+        }
 
         if (useCameraShake && cameraTransform != null)
             StartCoroutine(CameraShake());

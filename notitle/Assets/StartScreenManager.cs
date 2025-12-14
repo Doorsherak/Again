@@ -62,6 +62,8 @@ public class StartScreenManager_Safe : MonoBehaviour
         rootCg = GetComponent<CanvasGroup>();
         rootCg.alpha = 0f;
 
+        EnsureIntroOverlay();
+
         if (optionsPanel)
         {
             optionsCg = optionsPanel.GetComponent<CanvasGroup>();
@@ -135,6 +137,8 @@ public class StartScreenManager_Safe : MonoBehaviour
         {
             introOverlay.gameObject.SetActive(true);
             introOverlay.alpha = 1f;
+            introOverlay.interactable = true;
+            introOverlay.blocksRaycasts = true;
             if (introLine1) introLine1.text = "피실험체 번호: 482";
             if (introLine2) introLine2.text = "투약 완료. 환각 반응 테스트를 시작합니다.";
             if (introLine3) introLine3.text = "생존하십시오.";
@@ -146,6 +150,8 @@ public class StartScreenManager_Safe : MonoBehaviour
                 yield return null;
             }
             introOverlay.alpha = 0f;
+            introOverlay.interactable = false;
+            introOverlay.blocksRaycasts = false;
         }
 
         var targetScene = ResolveSceneName();
@@ -275,6 +281,75 @@ public class StartScreenManager_Safe : MonoBehaviour
 
         var go = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
         // keep scene-scoped to avoid duplicates when loading other scenes that already have one
+    }
+
+    void EnsureIntroOverlay()
+    {
+        if (introOverlay)
+        {
+            introOverlay.alpha = 0f;
+            introOverlay.interactable = false;
+            introOverlay.blocksRaycasts = false;
+            return;
+        }
+
+        // Minimal, scene-local intro overlay (no prefab needed)
+        var canvasGo = new GameObject("IntroOverlayCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+        canvasGo.transform.SetParent(transform, false);
+        var canvas = canvasGo.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.overrideSorting = true;
+        canvas.sortingOrder = 999;
+
+        var scaler = canvasGo.GetComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920, 1080);
+        scaler.matchWidthOrHeight = 0.5f;
+
+        introOverlay = canvasGo.AddComponent<CanvasGroup>();
+        introOverlay.alpha = 0f;
+        introOverlay.interactable = false;
+        introOverlay.blocksRaycasts = false;
+
+        var bgGo = new GameObject("BG", typeof(RectTransform), typeof(Image));
+        bgGo.transform.SetParent(canvasGo.transform, false);
+        var bgRt = (RectTransform)bgGo.transform;
+        Stretch(bgRt, 0, 0, 0, 0);
+        var bgImg = bgGo.GetComponent<Image>();
+        bgImg.color = new Color(0f, 0f, 0f, 1f);
+        bgImg.raycastTarget = false;
+
+        introLine1 = CreateIntroText(canvasGo.transform, "IntroLine1", new Vector2(80, -120), 44);
+        introLine2 = CreateIntroText(canvasGo.transform, "IntroLine2", new Vector2(80, -176), 28);
+        introLine3 = CreateIntroText(canvasGo.transform, "IntroLine3", new Vector2(80, -232), 34);
+    }
+
+    TextMeshProUGUI CreateIntroText(Transform parent, string name, Vector2 anchoredPos, float size)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
+        go.transform.SetParent(parent, false);
+        var rt = (RectTransform)go.transform;
+        rt.anchorMin = new Vector2(0f, 1f);
+        rt.anchorMax = new Vector2(0f, 1f);
+        rt.pivot = new Vector2(0f, 1f);
+        rt.anchoredPosition = anchoredPos;
+        rt.sizeDelta = new Vector2(1600, 80);
+
+        var tmp = go.GetComponent<TextMeshProUGUI>();
+        tmp.text = string.Empty;
+        tmp.fontSize = size;
+        tmp.color = new Color(0.9f, 0.94f, 0.98f, 1f);
+        tmp.alignment = TextAlignmentOptions.TopLeft;
+        tmp.raycastTarget = false;
+        return tmp;
+    }
+
+    static void Stretch(RectTransform rt, float l, float t, float r, float b)
+    {
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = new Vector2(l, b);
+        rt.offsetMax = new Vector2(-r, -t);
     }
 
     public void QuitGame()
