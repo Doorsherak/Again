@@ -1,0 +1,121 @@
+﻿name: Unity CI
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'notitle/**'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'notitle/**'
+      - '.github/workflows/**'
+  workflow_dispatch:
+    inputs:
+      buildWindows:
+        description: 'Also build Windows (StandaloneWindows64)'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: unity-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Tests (EditMode + PlayMode)
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Cache Library
+        uses: actions/cache@v4
+        with:
+          path: notitle/Library
+          key: Library-${{ runner.os }}-${{ hashFiles('notitle/Assets/**', 'notitle/Packages/**', 'notitle/ProjectSettings/**') }}
+          restore-keys: |
+            Library-${{ runner.os }}-
+
+      - name: Verify Unity license secret
+        shell: pwsh
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        run: |
+          if (-not $env:UNITY_LICENSE -and -not $env:UNITY_SERIAL) {
+            Write-Error "Missing Unity license secrets. See notitle/CI_SETUP.md"
+            exit 1
+          }
+
+      - name: Run tests
+        uses: game-ci/unity-test-runner@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        with:
+          projectPath: notitle
+          unityVersion: 6000.2.4f1
+          testMode: all
+          artifactsPath: test-results
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+
+  build-windows:
+    name: Build Windows (StandaloneWindows64)
+    needs: tests
+    runs-on: windows-latest
+    timeout-minutes: 90
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.buildWindows == 'true' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Cache Library
+        uses: actions/cache@v4
+        with:
+          path: notitle/Library
+          key: Library-${{ runner.os }}-${{ hashFiles('notitle/Assets/**', 'notitle/Packages/**', 'notitle/ProjectSettings/**') }}
+          restore-keys: |
+            Library-${{ runner.os }}-
+
+      - name: Verify Unity license secret
+        shell: pwsh
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        run: |
+          if (-not $env:UNITY_LICENSE -and -not $env:UNITY_SERIAL) {
+            Write-Error "Missing Unity license secrets. See notitle/CI_SETUP.md"
+            exit 1
+          }
+
+      - name: Build
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        with:
+          projectPath: notitle
+          unityVersion: 6000.2.4f1
+          targetPlatform: StandaloneWindows64
+          buildName: notitle
+          buildPath: build/StandaloneWindows64
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: StandaloneWindows64
+          path: build/StandaloneWindows64
