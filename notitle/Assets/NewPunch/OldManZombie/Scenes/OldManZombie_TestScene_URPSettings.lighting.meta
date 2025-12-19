@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 99662977daa77dc47b2a1ddfe9b3086c
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 4890085278179872738
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 270864
+  packageName: OldMan Zombie
+  packageVersion: 1.0
+  assetPath: Assets/NewPunch/OldManZombie/Scenes/OldManZombie_TestScene_URPSettings.lighting
+  uploadId: 645494

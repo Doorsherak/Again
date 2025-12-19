@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 9299feddcc42bc64a9f2bfd54944453f
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 270864
+  packageName: OldMan Zombie
+  packageVersion: 1.0
+  assetPath: Assets/NewPunch/OldManZombie/Prefabs/HDRP/OldManZombie_BodyParts_HDRP.prefab
+  uploadId: 645494

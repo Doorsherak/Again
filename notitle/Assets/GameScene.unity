@@ -119,11 +119,6 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1 &11394977 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 1043346862074072, guid: eeefdd9044a28504abd5e39c9e8fe5d0, type: 3}
-  m_PrefabInstance: {fileID: 40447122}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &17466978
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2016,6 +2011,68 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: df2f14ece3a3a0847aad4f1407b39c50, type: 3}
+--- !u!1001 &543017297
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 4030456726774538803, guid: 13ed0a44988daf04abafa7862694fccb, type: 3}
+      propertyPath: m_Name
+      value: OldManZombie_URP
+      objectReference: {fileID: 0}
+    - target: {fileID: 4369863440153098377, guid: 13ed0a44988daf04abafa7862694fccb, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -6.35589
+      objectReference: {fileID: 0}
+    - target: {fileID: 4369863440153098377, guid: 13ed0a44988daf04abafa7862694fccb, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4369863440153098377, guid: 13ed0a44988daf04abafa7862694fccb, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.06743
+      objectReference: {fileID: 0}
+    - target: {fileID: 4369863440153098377, guid: 13ed0a44988daf04abafa7862694fccb, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4369863440153098377, guid: 13ed0a44988daf04abafa7862694fccb, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4369863440153098377, guid: 13ed0a44988daf04abafa7862694fccb, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4369863440153098377, guid: 13ed0a44988daf04abafa7862694fccb, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4369863440153098377, guid: 13ed0a44988daf04abafa7862694fccb, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4369863440153098377, guid: 13ed0a44988daf04abafa7862694fccb, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4369863440153098377, guid: 13ed0a44988daf04abafa7862694fccb, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 13ed0a44988daf04abafa7862694fccb, type: 3}
+--- !u!1 &543017298 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4030456726774538803, guid: 13ed0a44988daf04abafa7862694fccb, type: 3}
+  m_PrefabInstance: {fileID: 543017297}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &571500600 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 7837436706460664600, guid: bf80d2de1b517c944bbdaaa74c854ba0, type: 3}
@@ -2303,11 +2360,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 77031887fd4915d4e968b7a77f6ea7e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::JumpscareTrigger
-  monster: {fileID: 11394977}
+  monster: {fileID: 543017298}
   fadeCanvasGroup: {fileID: 217680466}
   playerController: {fileID: 68494955}
   sfxSource: {fileID: 372230375}
   jumpscareClip: {fileID: 8300000, guid: c511b49adcec5af478d4ec70db6502c8, type: 3}
+  sfxVolumeRange: {x: 0.9, y: 1}
   usePreScare: 1
   preScareDuration: 2
   flickerLights: []
@@ -2316,6 +2374,11 @@ MonoBehaviour:
   ambienceTargetVolume: 0.8
   flickerIntervalMin: 0.05
   flickerIntervalMax: 0.2
+  usePreScareFade: 1
+  preScareFadeAlpha: 0.2
+  useIntensityFlicker: 0
+  flickerIntensityMin: 0.6
+  flickerIntensityMax: 1
   delayBeforeMonster: 0
   soundToMonsterOffset: -0.05
   timingJitter: 0.15
@@ -2328,6 +2391,20 @@ MonoBehaviour:
   cameraTransform: {fileID: 68494949}
   shakeDuration: 0.3
   shakeIntensity: 0.1
+  placeMonsterAtCamera: 1
+  monsterCameraLocalPos: {x: 0, y: -1.5, z: 0.75}
+  monsterCameraLocalEuler: {x: 0, y: 180, z: 0}
+  monsterPositionJitter: {x: 0.03, y: 0.02, z: 0.03}
+  monsterRotationJitter: {x: 0, y: 4, z: 0}
+  autoTriggerOnStart: 0
+  autoTriggerDelay: 0
+  disableColliderWhenAutoTrigger: 1
+  enableTriggerOnEnter: 0
+  showPlacementPreview: 1
+  previewColor: {r: 1, g: 0, b: 0, a: 0.3}
+  previewForwardLength: 0.35
+  showJitterPreview: 1
+  previewJitterColor: {r: 1, g: 0.6, b: 0, a: 0.2}
   triggerOnlyOnce: 0
   editorOnly: 0
 --- !u!4 &615394206
@@ -2649,6 +2726,11 @@ MonoBehaviour:
   fogDensity: 0.03
   linearStart: 0
   linearEnd: 30
+  enableDrift: 0
+  densityDrift: 0.004
+  linearDistanceDrift: 1.5
+  driftSpeed: 0.35
+  driftInterval: 0.2
 --- !u!4 &728530450
 Transform:
   m_ObjectHideFlags: 0
@@ -5029,3 +5111,4 @@ SceneRoots:
   - {fileID: 615394206}
   - {fileID: 1912483354}
   - {fileID: 728530450}
+  - {fileID: 543017297}

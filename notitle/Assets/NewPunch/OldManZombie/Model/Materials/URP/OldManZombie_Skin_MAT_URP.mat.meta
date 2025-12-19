@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: c97c52dfd604f38499794bd891c80c87
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 270864
+  packageName: OldMan Zombie
+  packageVersion: 1.0
+  assetPath: Assets/NewPunch/OldManZombie/Model/Materials/URP/OldManZombie_Skin_MAT_URP.mat
+  uploadId: 645494

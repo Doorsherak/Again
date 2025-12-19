@@ -328,20 +328,27 @@ public class PauseManager : MonoBehaviour
         var imgDim = dim.GetComponent<Image>(); imgDim.color = new Color(0, 0, 0, 0.75f); imgDim.raycastTarget = false;
         dim.transform.SetAsFirstSibling();
 
-        // Menu
-        var menu = new GameObject("UI_Pause_Menu", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
-        menu.transform.SetParent(pauseRoot.transform, false);
-        var rtMenu = (RectTransform)menu.transform; rtMenu.sizeDelta = new Vector2(400, 192); rtMenu.anchoredPosition = Vector2.zero;
-        var vlg = menu.GetComponent<VerticalLayoutGroup>();
-        vlg.childAlignment = TextAnchor.MiddleCenter; vlg.spacing = 20;
-        vlg.childControlWidth = vlg.childControlHeight = true;
-        vlg.childForceExpandWidth = false; vlg.childForceExpandHeight = false;
-        var csf = menu.GetComponent<ContentSizeFitter>(); csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        // Panel
+        var panel = new GameObject("UI_Pause_Panel", typeof(RectTransform), typeof(Image), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
+        panel.transform.SetParent(pauseRoot.transform, false);
+        var rtPanel = (RectTransform)panel.transform; rtPanel.sizeDelta = new Vector2(460, 0); rtPanel.anchoredPosition = Vector2.zero;
+        var imgPanel = panel.GetComponent<Image>();
+        imgPanel.sprite = GetUISprite();
+        imgPanel.type = Image.Type.Sliced;
+        imgPanel.color = new Color(0.08f, 0.09f, 0.1f, 0.92f);
+        imgPanel.raycastTarget = false;
 
-        // Buttons
-        firstSelected = CreateButton(menu.transform, firstSelectedName, "계속하기", BtnResume);
-        CreateButton(menu.transform, "Btn_Pause_Restart", "다시 시작", BtnRestart);
-        CreateButton(menu.transform, "Btn_Pause_MainMenu", "메인 메뉴", BtnQuitToTitle);
+        var vlg = panel.GetComponent<VerticalLayoutGroup>();
+        vlg.childAlignment = TextAnchor.MiddleCenter; vlg.spacing = 14;
+        vlg.childControlWidth = vlg.childControlHeight = true;
+        vlg.childForceExpandWidth = true; vlg.childForceExpandHeight = false;
+        vlg.padding = new RectOffset(24, 24, 22, 22);
+        var csf = panel.GetComponent<ContentSizeFitter>(); csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        CreateLabel(panel.transform, "Pause_Title", "일시정지", 32);
+        firstSelected = CreateButton(panel.transform, firstSelectedName, "계속하기", BtnResume);
+        CreateButton(panel.transform, "Btn_Pause_Restart", "다시 시작", BtnRestart);
+        CreateButton(panel.transform, "Btn_Pause_MainMenu", "메인 메뉴", BtnQuitToTitle);
 
         if (logVerbose) Debug.Log("[Pause] Fallback UI 생성 완료");
     }
@@ -350,23 +357,66 @@ public class PauseManager : MonoBehaviour
     {
         var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
         go.transform.SetParent(parent, false);
-        var img = go.GetComponent<Image>(); img.type = Image.Type.Sliced; img.color = new Color(1, 1, 1, 1);
+        var img = go.GetComponent<Image>();
+        img.sprite = GetUISprite();
+        img.type = Image.Type.Sliced;
+        img.color = new Color(0.16f, 0.17f, 0.2f, 0.95f);
         var btn = go.GetComponent<Button>(); btn.targetGraphic = img; btn.onClick.AddListener(onClick);
+        var colors = btn.colors;
+        colors.normalColor = new Color(0.16f, 0.17f, 0.2f, 0.95f);
+        colors.highlightedColor = new Color(0.22f, 0.24f, 0.28f, 1f);
+        colors.pressedColor = new Color(0.1f, 0.12f, 0.14f, 1f);
+        colors.selectedColor = colors.highlightedColor;
+        colors.fadeDuration = 0.08f;
+        btn.colors = colors;
 
         // Label(Text)
         var tgo = new GameObject("Text", typeof(RectTransform), typeof(Text));
         tgo.transform.SetParent(go.transform, false);
         var txt = tgo.GetComponent<Text>();
         txt.text = label; txt.alignment = TextAnchor.MiddleCenter; txt.fontSize = 24;
+        txt.color = new Color(0.92f, 0.95f, 0.98f, 1f);
 #if UNITY_6000_0_OR_NEWER
         txt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");   // Unity 6 내장 폰트
 #else
         txt.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
 #endif
+        var shadow = tgo.AddComponent<Shadow>();
+        shadow.effectColor = new Color(0f, 0f, 0f, 0.65f);
+        shadow.effectDistance = new Vector2(1f, -1f);
+        shadow.useGraphicAlpha = true;
         var rt = (RectTransform)tgo.transform; Stretch(rt, 0, 0, 0, 0);
 
         var le = go.AddComponent<LayoutElement>(); le.preferredHeight = 52;
         return go;
+    }
+
+    GameObject CreateLabel(Transform parent, string name, string label, int size)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(Text));
+        go.transform.SetParent(parent, false);
+        var txt = go.GetComponent<Text>();
+        txt.text = label; txt.alignment = TextAnchor.MiddleCenter; txt.fontSize = size;
+        txt.color = new Color(0.92f, 0.95f, 0.98f, 1f);
+#if UNITY_6000_0_OR_NEWER
+        txt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");   // Unity 6 내장 폰트
+#else
+        txt.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+#endif
+        var shadow = go.AddComponent<Shadow>();
+        shadow.effectColor = new Color(0f, 0f, 0f, 0.7f);
+        shadow.effectDistance = new Vector2(1f, -1f);
+        shadow.useGraphicAlpha = true;
+        var le = go.AddComponent<LayoutElement>(); le.preferredHeight = 44;
+        return go;
+    }
+
+    static Sprite GetUISprite()
+    {
+        var sprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/UISprite.psd");
+        if (sprite == null)
+            sprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/Background.psd");
+        return sprite;
     }
 
     static void Stretch(RectTransform rt, float l, float t, float r, float b)

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 1d95510fd6208bc4f8d21c3ad89ec515
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 270864
+  packageName: OldMan Zombie
+  packageVersion: 1.0
+  assetPath: Assets/NewPunch/OldManZombie/Model/Materials/URP/Terrain_URP.mat
+  uploadId: 645494

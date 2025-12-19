@@ -13,8 +13,58 @@ public class FogEnabler : MonoBehaviour
     public float linearStart = 0f;
     public float linearEnd = 30f;
 
-    void OnEnable() => Apply();
+    [Header("Subtle Drift")]
+    public bool enableDrift = false;
+    [Range(0f, 0.02f)] public float densityDrift = 0.004f;
+    [Range(0f, 5f)] public float linearDistanceDrift = 1.5f;
+    [Range(0.05f, 2f)] public float driftSpeed = 0.35f;
+    [Range(0.05f, 0.5f)] public float driftInterval = 0.2f;
+
+    float _driftTimer;
+    float _driftSeed;
+    bool _wasDrifting;
+
+    void OnEnable()
+    {
+        _driftSeed = Random.Range(0f, 1000f);
+        _driftTimer = 0f;
+        _wasDrifting = enableDrift;
+        Apply();
+    }
     void OnValidate() => Apply();
+    void Update()
+    {
+        if (!Application.isPlaying)
+            return;
+
+        if (!enableDrift)
+        {
+            if (_wasDrifting) Apply();
+            _wasDrifting = false;
+            return;
+        }
+
+        _wasDrifting = true;
+        _driftTimer -= Time.deltaTime;
+        if (_driftTimer > 0f) return;
+        _driftTimer = Mathf.Max(0.01f, driftInterval);
+
+        float noise = Mathf.PerlinNoise(_driftSeed, Time.time * driftSpeed);
+        float signed = (noise - 0.5f) * 2f;
+
+        if (fogMode == FogMode.Linear)
+        {
+            float start = Mathf.Max(0f, linearStart + signed * linearDistanceDrift);
+            float end = Mathf.Max(start + 0.1f, linearEnd + signed * linearDistanceDrift);
+            RenderSettings.fogStartDistance = start;
+            RenderSettings.fogEndDistance = end;
+        }
+        else
+        {
+            float density = Mathf.Max(0f, fogDensity + signed * densityDrift);
+            RenderSettings.fogDensity = density;
+        }
+    }
 
     void Apply()
     {

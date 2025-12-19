@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: ffe7baa38c7c51a4c9415d667a509657
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 4890085278179872738
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 270864
+  packageName: OldMan Zombie
+  packageVersion: 1.0
+  assetPath: Assets/NewPunch/OldManZombie/Scenes/OldManZombie_TestScene_HDRPSettings.lighting
+  uploadId: 645494

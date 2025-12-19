@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 12725d198852a1f49ad453b4146b9c8e
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 270864
+  packageName: OldMan Zombie
+  packageVersion: 1.0
+  assetPath: Assets/NewPunch/OldManZombie/Prefabs/OldManZombie_BodyParts.prefab
+  uploadId: 645494

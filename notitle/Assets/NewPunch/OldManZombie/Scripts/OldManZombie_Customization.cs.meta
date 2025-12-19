@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: a2eccc1c1a4abb847b759f374532d19b
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 270864
+  packageName: OldMan Zombie
+  packageVersion: 1.0
+  assetPath: Assets/NewPunch/OldManZombie/Scripts/OldManZombie_Customization.cs
+  uploadId: 645494
