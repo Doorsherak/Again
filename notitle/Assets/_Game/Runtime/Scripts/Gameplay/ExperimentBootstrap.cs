@@ -299,6 +299,12 @@ public class ExperimentBootstrap : MonoBehaviour
         _hud?.ShowMessage("샘플 회수 완료.", 1.2f);
     }
 
+    public int CollectedSamples => _collected;
+    public int RequiredSamples => requiredSamples;
+    public bool IsWatching => _isWatching;
+    public bool IsEnding => _ending;
+    public float AverageSpeed => _avgSpeed;
+
     public bool CanExit() => _collected >= requiredSamples;
 
     public void OnReachedExit()

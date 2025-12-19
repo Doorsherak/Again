@@ -6,25 +6,25 @@ using UnityEngine.Rendering.PostProcessing;
 public class HorrorAtmosphere : MonoBehaviour
 {
     [Header("References")]
-    public Transform player;                    // ÇÃ·¹ÀÌ¾î(3D »ç¿îµå ¹èÄ¡ ±âÁØ)
-    public Light[] allLights;                   // ºñ¿öµÎ¸é ÀÚµ¿ ¼öÁı
-    public PostProcessVolume postProcessVolume; // PPS v2 »ç¿ë ½Ã
+    public Transform player;                    // í”Œë ˆì´ì–´(3D ì‚¬ìš´ë“œ ë°°ì¹˜ ê¸°ì¤€)
+    public Light[] allLights;                   // ë¹„ì›Œë‘ë©´ ìë™ ìˆ˜ì§‘
+    public PostProcessVolume postProcessVolume; // PPS v2 ì‚¬ìš© ì‹œ
 
     [Header("Lighting: Flicker & Brownout")]
     [Range(0f, 1f)] public float horrorLevel = 0.5f; // 0~1
-    public float meanBrownoutInterval = 60f;         // Æò±Õ Á¤Àü °£°İ(ÃÊ)
-    public float brownoutHold = 3.0f;                // ¿ÏÀü ¾ÏÈæ À¯Áö ½Ã°£
+    public float meanBrownoutInterval = 60f;         // í‰ê·  ì •ì „ ê°„ê²©(ì´ˆ)
+    public float brownoutHold = 3.0f;                // ì™„ì „ ì•”í‘ ìœ ì§€ ì‹œê°„
     public AnimationCurve brownoutCurve = AnimationCurve.EaseInOut(0, 1, 1, 1);
     public Vector2 perlinSpeedRange = new Vector2(0.5f, 2.5f);
-    public Vector2 perlinAmpRange = new Vector2(0.2f, 0.6f); // °­µµ Èçµé¸² Æø
+    public Vector2 perlinAmpRange = new Vector2(0.2f, 0.6f); // ê°•ë„ í”ë“¤ë¦¼ í­
 
     [Header("Audio: Ambient & One-shots")]
-    public AudioSource ambientLoop; // ·çÇÁ¿ë
+    public AudioSource ambientLoop; // ë£¨í”„ìš©
     public AudioClip[] creepyOneShots;
-    public float meanCreepyInterval = 35f;  // Æò±Õ °£°İ
-    public float minCreepyDistance = 6f;    // ÇÃ·¹ÀÌ¾î·ÎºÎÅÍ ÃÖ¼Ò
-    public float maxCreepyDistance = 15f;   // ÃÖ´ë ¹èÄ¡ ¹İ°æ
-    public LayerMask occlusionMask;         // Â÷´Ü °¨Áö¿ë ·¹ÀÌ¾î
+    public float meanCreepyInterval = 35f;  // í‰ê·  ê°„ê²©
+    public float minCreepyDistance = 6f;    // í”Œë ˆì´ì–´ë¡œë¶€í„° ìµœì†Œ
+    public float maxCreepyDistance = 15f;   // ìµœëŒ€ ë°°ì¹˜ ë°˜ê²½
+    public LayerMask occlusionMask;         // ì°¨ë‹¨ ê°ì§€ìš© ë ˆì´ì–´
 
     [Header("Fog & Particles")]
     public ParticleSystem dustParticles;
@@ -33,11 +33,11 @@ public class HorrorAtmosphere : MonoBehaviour
     public float fogJitterSpeed = 0.2f;
 
     [Header("Stress Model")]
-    [Tooltip("ÀÌ °ªÀº ¿ÜºÎ(Àû Á¶¿ì¡¤Ã¼·Â¡¤½ºÅä¸® ÀÌº¥Æ®)¿¡¼­ °¡°¨ °¡´É")]
+    [Tooltip("ì´ ê°’ì€ ì™¸ë¶€(ì  ì¡°ìš°Â·ì²´ë ¥Â·ìŠ¤í† ë¦¬ ì´ë²¤íŠ¸)ì—ì„œ ê°€ê° ê°€ëŠ¥")]
     [Range(0f, 1f)] public float stress = 0f;
     public float stressDecayPerSec = 0.05f;
 
-    // ³»ºÎ »óÅÂ
+    // ë‚´ë¶€ ìƒíƒœ
     struct LightState
     {
         public Light light;
@@ -51,11 +51,11 @@ public class HorrorAtmosphere : MonoBehaviour
     float nextBrownoutTime;
     float nextCreepyTime;
     bool isBrownout = false;
-    float mains = 1f; // Àü·Â °è¼ö(0=Á¤Àü, 1=Á¤»ó)
+    float mains = 1f; // ì „ë ¥ ê³„ìˆ˜(0=ì •ì „, 1=ì •ìƒ)
 
     void Awake()
     {
-        // Á¶¸í ¼öÁı
+        // ì¡°ëª… ìˆ˜ì§‘
         if (allLights == null || allLights.Length == 0)
             allLights = FindObjectsByType<Light>(FindObjectsSortMode.None);
 
@@ -75,7 +75,7 @@ public class HorrorAtmosphere : MonoBehaviour
             lights.Add(st);
         }
 
-        // ÆÄÆ¼Å¬ ±âº»°ª
+        // íŒŒí‹°í´ ê¸°ë³¸ê°’
         if (dustParticles != null)
         {
             var main = dustParticles.main;
@@ -90,31 +90,31 @@ public class HorrorAtmosphere : MonoBehaviour
         ScheduleNext(ref nextBrownoutTime, Adj(meanBrownoutInterval));
         ScheduleNext(ref nextCreepyTime, Adj(meanCreepyInterval));
 
-        // ¾È°³ ±âº»°ª
+        // ì•ˆê°œ ê¸°ë³¸ê°’
         RenderSettings.fog = true;
         RenderSettings.fogDensity = baseFogDensity;
     }
 
     void Update()
     {
-        // ½ºÆ®·¹½º ÀÚ¿¬ °¨¼è
+        // ìŠ¤íŠ¸ë ˆìŠ¤ ìì—° ê°ì‡ 
         stress = Mathf.MoveTowards(stress, 0f, stressDecayPerSec * Time.deltaTime);
 
-        // ºê¶ó¿î¾Æ¿ô ½ºÄÉÁÙ
+        // ë¸Œë¼ìš´ì•„ì›ƒ ìŠ¤ì¼€ì¤„
         if (!isBrownout && Time.time >= nextBrownoutTime)
         {
             StartCoroutine(CoBrownout());
             ScheduleNext(ref nextBrownoutTime, Adj(meanBrownoutInterval));
         }
 
-        // °øÆ÷ ¿ø¼¦ ½ºÄÉÁÙ
+        // ê³µí¬ ì›ìƒ· ìŠ¤ì¼€ì¤„
         if (Time.time >= nextCreepyTime)
         {
             SpawnCreepyOneShot3D();
             ScheduleNext(ref nextCreepyTime, Adj(meanCreepyInterval));
         }
 
-        // ÆÛ¸° ³ëÀÌÁî ±â¹İ Á¶¸í Èçµé¸²(Á¤Àü °è¼ö¿Í °áÇÕ)
+        // í¼ë¦° ë…¸ì´ì¦ˆ ê¸°ë°˜ ì¡°ëª… í”ë“¤ë¦¼(ì •ì „ ê³„ìˆ˜ì™€ ê²°í•©)
         float t = Time.time;
         for (int i = 0; i < lights.Count; i++)
         {
@@ -122,10 +122,10 @@ public class HorrorAtmosphere : MonoBehaviour
             if (st.light == null) continue;
 
             float n = Mathf.PerlinNoise(st.perlinSeed, t * st.perlinSpeed); // 0~1
-            float flicker = 1f - st.perlinAmp * (1f - n);                   // 1¿¡¼­ ¾Æ·¡·Î Èçµé¸²
+            float flicker = 1f - st.perlinAmp * (1f - n);                   // 1ì—ì„œ ì•„ë˜ë¡œ í”ë“¤ë¦¼
             st.light.intensity = st.baseIntensity * flicker * mains;
 
-            // Àü·Â ºÒ¾ÈÁ¤ ½Ã »ö¿Âµµ ¾à°£ ÀÌµ¿(ºÒ¾ÈÇÑ ³ë¶ş°Ô¡æÆÄ¶ş°Ô)
+            // ì „ë ¥ ë¶ˆì•ˆì • ì‹œ ìƒ‰ì˜¨ë„ ì•½ê°„ ì´ë™(ë¶ˆì•ˆí•œ ë…¸ë—ê²Œâ†’íŒŒë—ê²Œ)
             float hueShift = (1f - mains) * 0.05f * Mathf.Sin(t * 6f + st.perlinSeed);
             Color.RGBToHSV(st.baseColor, out float h, out float s, out float v);
             h = Mathf.Repeat(h + hueShift, 1f);
@@ -134,17 +134,17 @@ public class HorrorAtmosphere : MonoBehaviour
             lights[i] = st;
         }
 
-        // ¾È°³ ¹Ì¼¼ ¿äµ¿(¼û½¬´Â È¯°æ ´À³¦)
+        // ì•ˆê°œ ë¯¸ì„¸ ìš”ë™(ìˆ¨ì‰¬ëŠ” í™˜ê²½ ëŠë‚Œ)
         float fogN = Mathf.PerlinNoise(11.1f, t * fogJitterSpeed);
         RenderSettings.fogDensity = baseFogDensity + (fogN - 0.5f) * fogJitterAmp * (0.5f + stress);
 
-        // ÈÄÃ³¸®(ÀÖÀ¸¸é) °øÆ÷/½ºÆ®·¹½º ¿¬µ¿
+        // í›„ì²˜ë¦¬(ìˆìœ¼ë©´) ê³µí¬/ìŠ¤íŠ¸ë ˆìŠ¤ ì—°ë™
         ApplyPostProcessing();
     }
 
     void ScheduleNext(ref float nextTime, float meanInterval)
     {
-        // Áö¼öºĞÆ÷: -ln(1-u) * mean
+        // ì§€ìˆ˜ë¶„í¬: -ln(1-u) * mean
         float u = Mathf.Max(1e-6f, 1f - Random.value);
         float delta = -Mathf.Log(u) * Mathf.Max(0.1f, meanInterval);
         nextTime = Time.time + delta;
@@ -152,7 +152,7 @@ public class HorrorAtmosphere : MonoBehaviour
 
     float Adj(float x)
     {
-        // °øÆ÷ ·¹º§¡¤½ºÆ®·¹½º·Î Æò±Õ °£°İ ´ÜÃà(ÃÖ´ë 1/3¹è)
+        // ê³µí¬ ë ˆë²¨Â·ìŠ¤íŠ¸ë ˆìŠ¤ë¡œ í‰ê·  ê°„ê²© ë‹¨ì¶•(ìµœëŒ€ 1/3ë°°)
         float k = 1f - 0.66f * Mathf.Clamp01(0.6f * horrorLevel + 0.4f * stress);
         return Mathf.Max(0.1f, x * k);
     }
@@ -161,34 +161,34 @@ public class HorrorAtmosphere : MonoBehaviour
     {
         isBrownout = true;
 
-        // ³»·Á°¡±â(0.08±îÁö), ¾à°£ÀÇ ¸µÀ× °î¼±
+        // ë‚´ë ¤ê°€ê¸°(0.08ê¹Œì§€), ì•½ê°„ì˜ ë§ì‰ ê³¡ì„ 
         yield return LerpMains(1f, 0.08f, 0.6f, EasingOut);
         yield return new WaitForSeconds(brownoutHold * (0.6f + 0.8f * horrorLevel));
 
-        // º¹±¸(¿À¹ö½¸ 1.15 ¡æ ¾ÈÁ¤ 1.0)
+        // ë³µêµ¬(ì˜¤ë²„ìŠ› 1.15 â†’ ì•ˆì • 1.0)
         yield return LerpMains(0.08f, 1.15f, 0.7f, EasingInOut);
         yield return LerpMains(1.15f, 1f, 0.25f, EasingInOut);
 
-        // ¸ÕÁö ¹ö½ºÆ®
+        // ë¨¼ì§€ ë²„ìŠ¤íŠ¸
         if (dustParticles != null)
             {
-                // EmissionModule °¡Á®¿À±â
+                // EmissionModule ê°€ì ¸ì˜¤ê¸°
                 var emission = dustParticles.emission;
 
-                // Burst Å¸ÀÔÀº 'ParticleSystem.Burst'·Î ¸í½Ã
+                // Burst íƒ€ì…ì€ 'ParticleSystem.Burst'ë¡œ ëª…ì‹œ
                 ParticleSystem.Burst burst = new ParticleSystem.Burst(
-                    0f,                                     // ¹ß»ı ½ÃÁ¡
-                    (short)Random.Range(15, 30)             // ÆÄÆ¼Å¬ °³¼ö
+                    0f,                                     // ë°œìƒ ì‹œì 
+                    (short)Random.Range(15, 30)             // íŒŒí‹°í´ ê°œìˆ˜
                 );
 
-                // ±âÁ¸ ¹ö½ºÆ®¸¦ µ¤¾î¾²±â
+                // ê¸°ì¡´ ë²„ìŠ¤íŠ¸ë¥¼ ë®ì–´ì“°ê¸°
                 emission.SetBursts(new ParticleSystem.Burst[] { burst });
 
                 dustParticles.Play();
             }
 
 
-        // ½ºÆ®·¹½º »ó½Â
+        // ìŠ¤íŠ¸ë ˆìŠ¤ ìƒìŠ¹
         AddStress(0.25f);
 
         isBrownout = false;
@@ -228,11 +228,11 @@ public class HorrorAtmosphere : MonoBehaviour
         src.playOnAwake = false;
         src.dopplerLevel = 0f;
 
-        // Â÷´Ü °¨Áö(º®/¹® »çÀÌ)
+        // ì°¨ë‹¨ ê°ì§€(ë²½/ë¬¸ ì‚¬ì´)
         var lp = go.AddComponent<AudioLowPassFilter>();
         lp.cutoffFrequency = 22000f;
 
-        // ÇÃ·¹ÀÌ¾î¿Í »çÀÌ¿¡ Àå¾Ö¹°ÀÌ ÀÖÀ¸¸é ÄÆ¿ÀÇÁ ³·Ãã
+        // í”Œë ˆì´ì–´ì™€ ì‚¬ì´ì— ì¥ì• ë¬¼ì´ ìˆìœ¼ë©´ ì»·ì˜¤í”„ ë‚®ì¶¤
         Vector3 head = player.position + Vector3.up * 1.6f;
         if (Physics.Linecast(go.transform.position, head, out RaycastHit hit, occlusionMask))
             lp.cutoffFrequency = Random.Range(500f, 1200f);
@@ -242,7 +242,7 @@ public class HorrorAtmosphere : MonoBehaviour
         src.Play();
         Destroy(go, src.clip.length + 0.2f);
 
-        // µéÀ¸¸é »ìÂ¦ ½ºÆ®·¹½º
+        // ë“¤ìœ¼ë©´ ì‚´ì§ ìŠ¤íŠ¸ë ˆìŠ¤
         AddStress(0.08f);
     }
 
@@ -250,7 +250,7 @@ public class HorrorAtmosphere : MonoBehaviour
     {
         if (postProcessVolume == null || postProcessVolume.profile == null) return;
 
-        // PPS v2 ¿¹½Ã: ºñ³×Æ®/ÇÊ¸§±×·¹ÀÎ/Å©·Î¸¶Æ½
+        // PPS v2 ì˜ˆì‹œ: ë¹„ë„¤íŠ¸/í•„ë¦„ê·¸ë ˆì¸/í¬ë¡œë§ˆí‹±
         if (postProcessVolume.profile.TryGetSettings(out Vignette vig))
             vig.intensity.value = Mathf.Lerp(0.15f, 0.45f, 0.6f * horrorLevel + 0.4f * stress);
 
@@ -264,7 +264,7 @@ public class HorrorAtmosphere : MonoBehaviour
             ca.intensity.value = Mathf.Lerp(0.02f, 0.25f, (isBrownout ? 1f : (0.6f * horrorLevel + 0.4f * stress)));
     }
 
-    // ¿ÜºÎ API È£È¯
+    // ì™¸ë¶€ API í˜¸í™˜
     public void TriggerPowerOutage()
     {
         if (!isBrownout) StartCoroutine(CoBrownout());
@@ -273,8 +273,8 @@ public class HorrorAtmosphere : MonoBehaviour
     public void SetHorrorLevel(float level)
     {
         horrorLevel = Mathf.Clamp01(level);
-        // ³­ÀÌµµ¿¡ µû¶ó Æò±Õ °£°İ ÀÚµ¿ º¸Á¤(Âª¾ÆÁü)
-        // º°µµ ÆÄ¶ó¹ÌÅÍ °Çµå¸®Áö ¾Ê¾Æµµ Ã¼°¨ ³­ÀÌµµ »ó½Â
+        // ë‚œì´ë„ì— ë”°ë¼ í‰ê·  ê°„ê²© ìë™ ë³´ì •(ì§§ì•„ì§)
+        // ë³„ë„ íŒŒë¼ë¯¸í„° ê±´ë“œë¦¬ì§€ ì•Šì•„ë„ ì²´ê° ë‚œì´ë„ ìƒìŠ¹
     }
 
     public void AddStress(float delta)
@@ -282,7 +282,7 @@ public class HorrorAtmosphere : MonoBehaviour
         stress = Mathf.Clamp01(stress + delta);
     }
 
-    // (¼±ÅÃ) ¸ğµç Á¶¸í ¿øº¹
+    // (ì„ íƒ) ëª¨ë“  ì¡°ëª… ì›ë³µ
     [ContextMenu("Restore Lights")]
     void RestoreLights()
     {
@@ -297,3 +297,4 @@ public class HorrorAtmosphere : MonoBehaviour
         }
     }
 }
+

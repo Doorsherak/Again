@@ -14,6 +14,8 @@ using UnityEngine.InputSystem.UI;
 
 public class PauseManager : MonoBehaviour
 {
+    static PauseManager s_instance;
+
     // ---------- References ----------
     [Header("References")]
     [SerializeField] public GameObject pauseRoot;       // UI_PauseRoot
@@ -59,6 +61,15 @@ public class PauseManager : MonoBehaviour
 
     void Awake()
     {
+        if (s_instance != null && s_instance != this)
+        {
+            if (logVerbose)
+                Debug.Log($"[Pause][Awake] Duplicate PauseManager on '{gameObject.name}' ({gameObject.scene.path}). Keeping '{s_instance.gameObject.name}'.");
+            Destroy(this);
+            return;
+        }
+        s_instance = this;
+
         // v3 → v4 마이그레이션
         if ((menuSceneNames == null || menuSceneNames.Length == 0) &&
             !string.IsNullOrEmpty(legacySingleMenuSceneName))
@@ -70,7 +81,7 @@ public class PauseManager : MonoBehaviour
         if (createEventSystemIfMissing) StartCoroutine(EnsureEventSystemDeferred());
 
         if (autoFindReferences) TryAutoWire("Awake");
-        if (autoBuildFallbackUI && pauseRoot == null) BuildFallbackUI();
+        if (autoBuildFallbackUI && pauseRoot == null && IsGameplayScene()) BuildFallbackUI();
         if (autoHookButtons) HookButtons();
 
         if (pauseRoot) pauseRoot.SetActive(false);
@@ -84,15 +95,23 @@ public class PauseManager : MonoBehaviour
 
     void OnDestroy()
     {
+        var isPrimary = s_instance == this;
+        if (isPrimary) s_instance = null;
+
         SceneManager.sceneLoaded -= OnSceneLoaded;
-        Time.timeScale = 1f; Time.fixedDeltaTime = baseFixedDelta; AudioListener.pause = false;
+
+        if (!isPrimary) return;
+
+        Time.timeScale = 1f;
+        Time.fixedDeltaTime = baseFixedDelta;
+        AudioListener.pause = false;
     }
 
     void OnSceneLoaded(Scene s, LoadSceneMode m)
     {
         if (createEventSystemIfMissing) StartCoroutine(EnsureEventSystemDeferred());
         if (autoFindReferences) TryAutoWire("sceneLoaded");
-        if (autoBuildFallbackUI && pauseRoot == null) BuildFallbackUI();
+        if (autoBuildFallbackUI && pauseRoot == null && !IsMenuSceneName(s.name)) BuildFallbackUI();
         if (autoHookButtons) HookButtons();
         if (logVerbose) Dump("[sceneLoaded]");
         ApplyCursorPolicy();
@@ -129,7 +148,7 @@ public class PauseManager : MonoBehaviour
         IsPaused = true;
         Time.timeScale = 0f; Time.fixedDeltaTime = baseFixedDelta * 0f; AudioListener.pause = true;
 
-        if (!pauseRoot && autoBuildFallbackUI) BuildFallbackUI();
+        if (!pauseRoot && autoBuildFallbackUI && IsGameplayScene()) BuildFallbackUI();
         if (pauseRoot)
         {
             pauseRoot.SetActive(true);
@@ -213,10 +232,55 @@ public class PauseManager : MonoBehaviour
     // ---------- Utilities ----------
     void TryAutoWire(string tag)
     {
-        if (!pauseRoot) { var go = GameObject.Find(pauseRootName); if (go) pauseRoot = go; }
-        if (!firstSelected) { var btn = GameObject.Find(firstSelectedName); if (btn) firstSelected = btn; }
+        if (!pauseRoot) pauseRoot = FindInLoadedScenesByName(pauseRootName);
+        if (!firstSelected)
+        {
+            if (pauseRoot) firstSelected = FindChildByName(pauseRoot.transform, firstSelectedName);
+            if (!firstSelected) firstSelected = FindInLoadedScenesByName(firstSelectedName);
+        }
         if (!fadeGroup && pauseRoot) { fadeGroup = pauseRoot.GetComponent<CanvasGroup>(); }
         if (logVerbose) Debug.Log($"[Pause]{tag} Wire → UI={(pauseRoot ? pauseRoot.scene.path : "NULL")}, First={(firstSelected ? firstSelected.name : "NULL")}");
+    }
+
+    static GameObject FindInLoadedScenesByName(string objectName)
+    {
+        if (string.IsNullOrEmpty(objectName)) return null;
+
+        // Fast path (활성 오브젝트)
+        var active = GameObject.Find(objectName);
+        if (active) return active;
+
+        var activeScene = SceneManager.GetActiveScene();
+        GameObject fallback = null;
+
+#if UNITY_2023_1_OR_NEWER
+        var all = Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+#else
+        var all = Resources.FindObjectsOfTypeAll<Transform>();
+#endif
+        foreach (var t in all)
+        {
+            if (!t || t.name != objectName) continue;
+            var go = t.gameObject;
+            var scene = go.scene;
+            if (!scene.IsValid() || !scene.isLoaded) continue;
+
+            if (scene == activeScene) return go;
+            if (fallback == null) fallback = go;
+        }
+
+        return fallback;
+    }
+
+    static GameObject FindChildByName(Transform root, string objectName)
+    {
+        if (root == null || string.IsNullOrEmpty(objectName)) return null;
+
+        var children = root.GetComponentsInChildren<Transform>(true);
+        foreach (var t in children)
+            if (t && t.name == objectName) return t.gameObject;
+
+        return null;
     }
 
     void HookButtons()
@@ -325,7 +389,11 @@ public class PauseManager : MonoBehaviour
         var dim = new GameObject("UI_Pause_Dim", typeof(RectTransform), typeof(Image));
         dim.transform.SetParent(pauseRoot.transform, false);
         var rtDim = (RectTransform)dim.transform; Stretch(rtDim, 0, 0, 0, 0);
-        var imgDim = dim.GetComponent<Image>(); imgDim.color = new Color(0, 0, 0, 0.75f); imgDim.raycastTarget = false;
+        var imgDim = dim.GetComponent<Image>();
+        imgDim.sprite = GetUISprite();
+        imgDim.type = Image.Type.Simple;
+        imgDim.color = new Color(0, 0, 0, 0.75f);
+        imgDim.raycastTarget = false;
         dim.transform.SetAsFirstSibling();
 
         // Panel
@@ -413,10 +481,9 @@ public class PauseManager : MonoBehaviour
 
     static Sprite GetUISprite()
     {
-        var sprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/UISprite.psd");
-        if (sprite == null)
-            sprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/Background.psd");
-        return sprite;
+        // 일부 환경에서 내장 UGUI 스프라이트 경로가 누락되어 콘솔 에러가 발생할 수 있어,
+        // 안전한 런타임 생성 스프라이트로 대체한다.
+        return RuntimeUIFallback.GetSolidSprite();
     }
 
     static void Stretch(RectTransform rt, float l, float t, float r, float b)

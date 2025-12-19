@@ -71,6 +71,8 @@ public class ExperimentHud : MonoBehaviour
         panelRt.sizeDelta = new Vector2(maxWidth, 0f);
 
         var panelImage = panel.GetComponent<Image>();
+        panelImage.sprite = RuntimeUIFallback.GetSolidSprite();
+        panelImage.type = Image.Type.Simple;
         panelImage.color = backdropColor;
         panelImage.raycastTarget = false;
         panelImage.enabled = useBackdrop;
