@@ -402,6 +402,11 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4490257326247362, guid: 11aaea5348574644a9eb4f4504fcce3f, type: 3}
   m_PrefabInstance: {fileID: 68494945}
   m_PrefabAsset: {fileID: 0}
+--- !u!4 &68494950 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4464631255176552, guid: 11aaea5348574644a9eb4f4504fcce3f, type: 3}
+  m_PrefabInstance: {fileID: 68494945}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &68494951
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1596,6 +1601,133 @@ Transform:
   m_Children: []
   m_Father: {fileID: 123118078}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &434373092
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 434373093}
+  - component: {fileID: 434373095}
+  - component: {fileID: 434373094}
+  m_Layer: 0
+  m_Name: Point Light
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &434373093
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 434373092}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.7071068, y: -0, z: -0, w: 0.7071068}
+  m_LocalPosition: {x: 0.9704075, y: 0.97040737, z: 1.9408154}
+  m_LocalScale: {x: 0.9704075, y: 0.97040725, z: 0.97040725}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 543017299}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &434373094
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 434373092}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
+--- !u!108 &434373095
+Light:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 434373092}
+  m_Enabled: 1
+  serializedVersion: 11
+  m_Type: 0
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Intensity: 1000
+  m_Range: 2
+  m_SpotAngle: 14.191296
+  m_InnerSpotAngle: 14.191296
+  m_CookieSize: 10
+  m_Shadows:
+    m_Type: 0
+    m_Resolution: -1
+    m_CustomResolution: -1
+    m_Strength: 1
+    m_Bias: 0.05
+    m_NormalBias: 0.4
+    m_NearPlane: 0.2
+    m_CullingMatrixOverride:
+      e00: 1
+      e01: 0
+      e02: 0
+      e03: 0
+      e10: 0
+      e11: 1
+      e12: 0
+      e13: 0
+      e20: 0
+      e21: 0
+      e22: 1
+      e23: 0
+      e30: 0
+      e31: 0
+      e32: 0
+      e33: 1
+    m_UseCullingMatrixOverride: 0
+  m_Cookie: {fileID: 0}
+  m_DrawHalo: 0
+  m_Flare: {fileID: 0}
+  m_RenderMode: 0
+  m_CullingMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_RenderingLayerMask: 1
+  m_Lightmapping: 2
+  m_LightShadowCasterMode: 0
+  m_AreaSize: {x: 1, y: 1}
+  m_BounceIntensity: 10
+  m_ColorTemperature: 6570
+  m_UseColorTemperature: 0
+  m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
+  m_UseBoundingSphereOverride: 0
+  m_UseViewFrustumForShadowCasterCull: 1
+  m_ForceVisible: 0
+  m_ShadowRadius: 0
+  m_ShadowAngle: 0
+  m_LightUnit: 1
+  m_LuxAtDistance: 1
+  m_EnableSpotReflector: 1
 --- !u!1 &437222818
 GameObject:
   m_ObjectHideFlags: 0
@@ -1794,6 +1926,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 470138, guid: dc8f3955c063af240afd23143f496335, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1501383522}
+    - targetCorrespondingSourceObject: {fileID: 470138, guid: dc8f3955c063af240afd23143f496335, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 850126584}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: dc8f3955c063af240afd23143f496335, type: 3}
 --- !u!4 &464437289 stripped
@@ -2065,12 +2200,20 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 485498045815337757, guid: 13ed0a44988daf04abafa7862694fccb, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 434373093}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 13ed0a44988daf04abafa7862694fccb, type: 3}
 --- !u!1 &543017298 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 4030456726774538803, guid: 13ed0a44988daf04abafa7862694fccb, type: 3}
+  m_PrefabInstance: {fileID: 543017297}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &543017299 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 485498045815337757, guid: 13ed0a44988daf04abafa7862694fccb, type: 3}
   m_PrefabInstance: {fileID: 543017297}
   m_PrefabAsset: {fileID: 0}
 --- !u!114 &571500600 stripped
@@ -2360,12 +2503,58 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 77031887fd4915d4e968b7a77f6ea7e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::JumpscareTrigger
+  enableQualityTuning: 1
+  autoTuneOnQualityChange: 1
+  pcPreset:
+    qualityName: PC
+    photosensitiveSafeMode: 1
+    useImpactFlash: 1
+    impactFlashAlpha: 0.85
+    impactFlashCount: 1
+    useCameraShake: 1
+    shakeIntensity: 0.1
+    useMonsterLightPulse: 1
+    monsterLightTargetIntensity: 8
+    monsterLightInTime: 0.05
+    monsterLightOutTime: 0.2
+    useMonsterLunge: 1
+    lungeDistance: 0.25
+  iGpuPreset:
+    qualityName: iGPU
+    photosensitiveSafeMode: 1
+    useImpactFlash: 1
+    impactFlashAlpha: 0.75
+    impactFlashCount: 1
+    useCameraShake: 1
+    shakeIntensity: 0.085
+    useMonsterLightPulse: 1
+    monsterLightTargetIntensity: 7
+    monsterLightInTime: 0.05
+    monsterLightOutTime: 0.2
+    useMonsterLunge: 1
+    lungeDistance: 0.22
+  mobilePreset:
+    qualityName: Mobile
+    photosensitiveSafeMode: 1
+    useImpactFlash: 1
+    impactFlashAlpha: 0.65
+    impactFlashCount: 1
+    useCameraShake: 0
+    shakeIntensity: 0.08
+    useMonsterLightPulse: 1
+    monsterLightTargetIntensity: 6
+    monsterLightInTime: 0.05
+    monsterLightOutTime: 0.2
+    useMonsterLunge: 1
+    lungeDistance: 0.2
   monster: {fileID: 543017298}
   fadeCanvasGroup: {fileID: 217680466}
   playerController: {fileID: 68494955}
   sfxSource: {fileID: 372230375}
   jumpscareClip: {fileID: 8300000, guid: c511b49adcec5af478d4ec70db6502c8, type: 3}
   sfxVolumeRange: {x: 0.9, y: 1}
+  sfxPitchRange: {x: 0.95, y: 1.05}
+  restoreSfxPitchAfterPlay: 1
   usePreScare: 1
   preScareDuration: 2
   flickerLights: []
@@ -2391,20 +2580,89 @@ MonoBehaviour:
   cameraTransform: {fileID: 68494949}
   shakeDuration: 0.3
   shakeIntensity: 0.1
+  useRotationShake: 1
+  shakeRotationIntensity: 1.5
+  autoResolveCameraTransform: 1
+  preferTargetCameraForAutoResolve: 1
+  allowPlayerControllerCameraSearch: 1
   placeMonsterAtCamera: 1
-  monsterCameraLocalPos: {x: 0, y: -1.5, z: 0.75}
-  monsterCameraLocalEuler: {x: 0, y: 180, z: 0}
+  monsterCameraLocalPos: {x: 0, y: -1.9, z: 0.47}
+  monsterCameraLocalEuler: {x: 2, y: 180, z: 0}
   monsterPositionJitter: {x: 0.03, y: 0.02, z: 0.03}
   monsterRotationJitter: {x: 0, y: 4, z: 0}
+  hidePlayerDuringJumpscare: 1
+  playerVisualRoot: {fileID: 68494950}
+  playerRenderers:
+  - {fileID: 0}
+  autoFindPlayerRenderers: 1
+  includeInactivePlayerRenderers: 1
+  hidePlayerByLayer: 0
+  playerHiddenLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  photosensitiveSafeMode: 1
+  safeMaxFlashAlpha: 0.6
+  safeMaxFlashCount: 1
+  safeMinFlashDuration: 0.08
+  safeMaxBlackoutAlpha: 0.8
+  safeMinBlackoutDuration: 0.05
+  safeMinLightPulseTime: 0.08
+  safeMaxMonsterLightIntensity: 6
+  useImpactFlash: 1
+  impactFlashAlpha: 0.85
+  impactFlashCount: 1
+  impactFlashDuration: 0.05
+  impactFlashGap: 0.05
+  useFovKick: 1
+  targetCamera: {fileID: 68494947}
+  fovKick: -12
+  fovKickInTime: 0.04
+  fovKickOutTime: 0.12
+  usePreImpactBlackout: 1
+  preImpactBlackoutAlpha: 1
+  preImpactBlackoutDuration: 0.03
+  preImpactBlackoutLeadTime: 0.02
+  useAudioDucking: 1
+  duckSources: []
+  duckTargetVolume: 0.1
+  duckInTime: 0.05
+  duckHoldTime: 0.12
+  duckOutTime: 0.25
+  duckLeadTime: 0.02
+  useMonsterLightPulse: 1
+  monsterLight: {fileID: 434373095}
+  autoFindMonsterLight: 1
+  autoCreateKeyLightIfMissing: 1
+  keyLightAttachToCamera: 1
+  keyLightType: 0
+  keyLightCameraLocalPos: {x: 0, y: 0.05, z: 0.15}
+  keyLightCameraLocalEuler: {x: 0, y: 0, z: 0}
+  keyLightRange: 4
+  keyLightSpotAngle: 70
+  keyLightAimAtMonster: 1
+  monsterLightTargetIntensity: 8
+  monsterLightInTime: 0.05
+  monsterLightHoldTime: 0.1
+  monsterLightOutTime: 0.2
+  overrideMonsterLightColor: 0
+  monsterLightColor: {r: 0.75, g: 0.85, b: 1, a: 1}
+  useMonsterLunge: 1
+  lungeDistance: 0.25
+  lungeDuration: 0.08
   autoTriggerOnStart: 0
   autoTriggerDelay: 0
   disableColliderWhenAutoTrigger: 1
   enableTriggerOnEnter: 0
   showPlacementPreview: 1
+  previewUseImpactPose: 1
+  previewUseFovKick: 1
   previewColor: {r: 1, g: 0, b: 0, a: 0.3}
   previewForwardLength: 0.35
   showJitterPreview: 1
   previewJitterColor: {r: 1, g: 0.6, b: 0, a: 0.2}
+  showKeyLightPreview: 1
+  keyLightPreviewColor: {r: 1, g: 1, b: 0.2, a: 0.6}
+  keyLightPreviewForwardLength: 0.5
   triggerOnlyOnce: 0
   editorOnly: 0
 --- !u!4 &615394206
@@ -3044,12 +3302,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 850126582}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: 0.7071068, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: -27.570633, y: 13.831436, z: 12.548937}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -0.009999753, y: -0.24800014, z: -3.0099988}
   m_LocalScale: {x: 1, y: 1, z: 2.194863}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2075246605}
+  m_Father: {fileID: 464437289}
   m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
 --- !u!114 &850126585
 MonoBehaviour:
@@ -3781,11 +4039,11 @@ Transform:
   m_GameObject: {fileID: 1482330984}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -22.272633, y: 13.974436, z: 8.496937}
+  m_LocalPosition: {x: 7.2060013, y: -0.20900059, z: 0.010000229}
   m_LocalScale: {x: 1, y: 1, z: 2.194863}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2075246605}
+  m_Father: {fileID: 507083821}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1482330987
 MonoBehaviour:
@@ -4165,7 +4423,13 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 470138, guid: dc8f3955c063af240afd23143f496335, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1595901600}
+    - targetCorrespondingSourceObject: {fileID: 470138, guid: dc8f3955c063af240afd23143f496335, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1482330986}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: dc8f3955c063af240afd23143f496335, type: 3}
 --- !u!1 &1561645022
@@ -4364,11 +4628,11 @@ Transform:
   m_GameObject: {fileID: 1595901598}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -29.542633, y: 13.935436, z: 8.496937}
+  m_LocalPosition: {x: -0.063999176, y: -0.24800014, z: 0.010000229}
   m_LocalScale: {x: 1, y: 1, z: 2.194863}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2075246605}
+  m_Father: {fileID: 507083821}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1595901601
 MonoBehaviour:
@@ -4881,14 +5145,11 @@ Transform:
   - {fileID: 507083821}
   - {fileID: 464437289}
   - {fileID: 878429099}
-  - {fileID: 1595901600}
   - {fileID: 1576815749}
   - {fileID: 261950148}
   - {fileID: 933533181}
   - {fileID: 274025186}
-  - {fileID: 850126584}
   - {fileID: 1534782888}
-  - {fileID: 1482330986}
   - {fileID: 82124659}
   - {fileID: 348327771}
   - {fileID: 399880533}

@@ -6,6 +6,44 @@ using UnityEngine.UI;
 [DisallowMultipleComponent]
 public class HorrorAtmosphereDirector : MonoBehaviour
 {
+    [System.Serializable]
+    struct QualityPreset
+    {
+        [Tooltip("QualitySettings.names 와 일치하는 이름(예: PC, iGPU, Mobile).")]
+        public string qualityName;
+
+        [Header("Vignette")]
+        public bool enableVignette;
+        [Range(0f, 1f)] public float vignetteMinAlpha;
+        [Range(0f, 1f)] public float vignetteMaxAlpha;
+        [Range(64, 512)] public int vignetteTextureSize;
+        public float vignettePulseSpeed;
+        [Range(0f, 0.2f)] public float vignettePulseAmount;
+
+        [Header("Stingers")]
+        public bool enableStingers;
+        public bool spatializeStingers;
+        public Vector2 stingerInterval;
+        public Vector2 stingerVolumeRange;
+
+        [Header("Light Flicker")]
+        public bool enableLampFlickerOnWatchStart;
+        [Range(0f, 1f)] public float watchStartFlickerChance;
+        public int flickerBurstCount;
+        public float flickerBurstSpacing;
+
+        [Header("Audio Low-Pass")]
+        public bool enableLowPass;
+        public float responseSpeed;
+    }
+
+    [Header("Quality Tuning")]
+    [SerializeField] bool enableQualityTuning = true;
+    [SerializeField] bool autoTuneOnQualityChange = true;
+    [SerializeField] QualityPreset pcPreset = MakePcPreset();
+    [SerializeField] QualityPreset iGpuPreset = MakeIGpuPreset();
+    [SerializeField] QualityPreset mobilePreset = MakeMobilePreset();
+
     [Header("Enable")]
     [SerializeField] bool enableDirector = true;
     [SerializeField] bool disableInMenuScenes = true;
@@ -69,6 +107,10 @@ public class HorrorAtmosphereDirector : MonoBehaviour
     Coroutine _flickerCo;
     float _stingerTimer;
     int _lastStingerIndex = -1;
+    int _lastQualityLevel = -999;
+    int _vignetteBuiltSize = -1;
+    float _vignetteBuiltInner = -1f;
+    float _vignetteBuiltOuter = -1f;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void AutoCreate()
@@ -83,6 +125,7 @@ public class HorrorAtmosphereDirector : MonoBehaviour
     void OnEnable()
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
+        ApplyQualityTuning(force: true, rebindAfterApply: false);
         BindSceneReferences();
     }
 
@@ -93,6 +136,7 @@ public class HorrorAtmosphereDirector : MonoBehaviour
 
     void OnSceneLoaded(Scene s, LoadSceneMode m)
     {
+        ApplyQualityTuning(force: true, rebindAfterApply: false);
         BindSceneReferences();
     }
 
@@ -120,11 +164,125 @@ public class HorrorAtmosphereDirector : MonoBehaviour
 
         EnsureVignetteOverlay();
         EnsureStingerSource();
+        UpdateStingerSourceRuntimeSettings();
+        RebuildVignetteIfNeeded();
     }
+
+    static QualityPreset MakePcPreset()
+    {
+        return new QualityPreset
+        {
+            qualityName = "PC",
+            enableVignette = true,
+            vignetteMinAlpha = 0.06f,
+            vignetteMaxAlpha = 0.28f,
+            vignetteTextureSize = 256,
+            vignettePulseSpeed = 0.6f,
+            vignettePulseAmount = 0.02f,
+
+            enableStingers = true,
+            spatializeStingers = true,
+            stingerInterval = new Vector2(12f, 24f),
+            stingerVolumeRange = new Vector2(0.12f, 0.28f),
+
+            enableLampFlickerOnWatchStart = true,
+            watchStartFlickerChance = 0.65f,
+            flickerBurstCount = 2,
+            flickerBurstSpacing = 0.12f,
+
+            enableLowPass = false,
+            responseSpeed = 4f,
+        };
+    }
+
+    static QualityPreset MakeIGpuPreset()
+    {
+        var p = MakePcPreset();
+        p.qualityName = "iGPU";
+        p.vignetteTextureSize = 192;
+        p.vignetteMaxAlpha = 0.24f;
+        p.vignettePulseAmount = 0.015f;
+        p.stingerInterval = new Vector2(14f, 26f);
+        p.watchStartFlickerChance = 0.5f;
+        p.responseSpeed = 3.5f;
+        return p;
+    }
+
+    static QualityPreset MakeMobilePreset()
+    {
+        var p = MakePcPreset();
+        p.qualityName = "Mobile";
+        p.vignetteTextureSize = 128;
+        p.vignetteMaxAlpha = 0.22f;
+        p.vignettePulseAmount = 0.01f;
+        p.spatializeStingers = false;
+        p.stingerInterval = new Vector2(18f, 30f);
+        p.enableLampFlickerOnWatchStart = false;
+        p.enableLowPass = false;
+        p.responseSpeed = 3.0f;
+        return p;
+    }
+
+    void ApplyQualityTuning(bool force, bool rebindAfterApply)
+    {
+        if (!enableQualityTuning) return;
+        int level = QualitySettings.GetQualityLevel();
+        if (!force && level == _lastQualityLevel) return;
+        _lastQualityLevel = level;
+
+        var preset = ResolvePreset(GetQualityNameSafe(level));
+
+        enableVignette = preset.enableVignette;
+        vignetteMinAlpha = preset.vignetteMinAlpha;
+        vignetteMaxAlpha = preset.vignetteMaxAlpha;
+        vignetteTextureSize = preset.vignetteTextureSize;
+        vignettePulseSpeed = preset.vignettePulseSpeed;
+        vignettePulseAmount = preset.vignettePulseAmount;
+
+        enableStingers = preset.enableStingers;
+        spatializeStingers = preset.spatializeStingers;
+        stingerInterval = preset.stingerInterval;
+        stingerVolumeRange = preset.stingerVolumeRange;
+
+        enableLampFlickerOnWatchStart = preset.enableLampFlickerOnWatchStart;
+        watchStartFlickerChance = preset.watchStartFlickerChance;
+        flickerBurstCount = preset.flickerBurstCount;
+        flickerBurstSpacing = preset.flickerBurstSpacing;
+
+        enableLowPass = preset.enableLowPass;
+        responseSpeed = preset.responseSpeed;
+
+        if (rebindAfterApply)
+            BindSceneReferences();
+    }
+
+    static string GetQualityNameSafe(int level)
+    {
+        var names = QualitySettings.names;
+        if (names != null && level >= 0 && level < names.Length) return names[level];
+        return string.Empty;
+    }
+
+    QualityPreset ResolvePreset(string qualityName)
+    {
+        if (!string.IsNullOrEmpty(qualityName))
+        {
+            if (NameEquals(qualityName, pcPreset.qualityName) || NameEquals(qualityName, "PC")) return pcPreset;
+            if (NameEquals(qualityName, iGpuPreset.qualityName) || NameEquals(qualityName, "iGPU")) return iGpuPreset;
+            if (NameEquals(qualityName, mobilePreset.qualityName) || NameEquals(qualityName, "Mobile")) return mobilePreset;
+        }
+        return pcPreset;
+    }
+
+    static bool NameEquals(string a, string b)
+        => !string.IsNullOrEmpty(a) && !string.IsNullOrEmpty(b) &&
+           string.Equals(a, b, System.StringComparison.OrdinalIgnoreCase);
 
     void Update()
     {
         if (!Application.isPlaying) return;
+        if (enableQualityTuning && autoTuneOnQualityChange)
+            ApplyQualityTuning(force: false, rebindAfterApply: true);
         if (!enableDirector) { SetEnabled(false); return; }
 
         bool inMenu = disableInMenuScenes && IsMenuScene(SceneManager.GetActiveScene().name);
@@ -252,8 +410,29 @@ public class HorrorAtmosphereDirector : MonoBehaviour
 
         if (_vignetteTexture != null) Destroy(_vignetteTexture);
         _vignetteTexture = BuildVignetteTexture(vignetteTextureSize, vignetteInnerRadius, vignetteOuterRadius);
+        _vignetteBuiltSize = vignetteTextureSize;
+        _vignetteBuiltInner = vignetteInnerRadius;
+        _vignetteBuiltOuter = vignetteOuterRadius;
         _vignetteImage.texture = _vignetteTexture;
         _vignetteImage.color = new Color(0f, 0f, 0f, 0f);
+    }
+
+    void RebuildVignetteIfNeeded()
+    {
+        if (!enableVignette) return;
+        if (_vignetteImage == null) return;
+
+        bool sizeChanged = _vignetteBuiltSize != vignetteTextureSize;
+        bool shapeChanged = !Mathf.Approximately(_vignetteBuiltInner, vignetteInnerRadius) ||
+                            !Mathf.Approximately(_vignetteBuiltOuter, vignetteOuterRadius);
+        if (!sizeChanged && !shapeChanged) return;
+
+        if (_vignetteTexture != null) Destroy(_vignetteTexture);
+        _vignetteTexture = BuildVignetteTexture(vignetteTextureSize, vignetteInnerRadius, vignetteOuterRadius);
+        _vignetteBuiltSize = vignetteTextureSize;
+        _vignetteBuiltInner = vignetteInnerRadius;
+        _vignetteBuiltOuter = vignetteOuterRadius;
+        _vignetteImage.texture = _vignetteTexture;
     }
 
     void ApplyVignette(float tension)
@@ -377,6 +556,14 @@ public class HorrorAtmosphereDirector : MonoBehaviour
         stingerSource.maxDistance = Mathf.Max(4f, stingerDistance * 2f);
 
         _stingerTimer = NextStingerDelay(_tension);
+    }
+
+    void UpdateStingerSourceRuntimeSettings()
+    {
+        if (stingerSource == null) return;
+        stingerSource.spatialBlend = spatializeStingers ? 1f : 0f;
+        stingerSource.maxDistance = Mathf.Max(4f, stingerDistance * 2f);
+        if (!enableStingers) stingerSource.Stop();
     }
 
     void UpdateStingers(float tension)

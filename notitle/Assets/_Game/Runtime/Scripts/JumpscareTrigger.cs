@@ -6,6 +6,41 @@ using UnityEngine.SceneManagement;
 [DisallowMultipleComponent]
 public class JumpscareTrigger : MonoBehaviour
 {
+    [System.Serializable]
+    struct QualityPreset
+    {
+        [Tooltip("QualitySettings.names 와 일치하는 이름(예: PC, iGPU, Mobile).")]
+        public string qualityName;
+
+        [Header("Safety")]
+        public bool photosensitiveSafeMode;
+
+        [Header("Impact / Camera")]
+        public bool useImpactFlash;
+        [Range(0f, 1f)] public float impactFlashAlpha;
+        public int impactFlashCount;
+        public bool useCameraShake;
+        public float shakeIntensity;
+
+        [Header("Monster Light")]
+        public bool useMonsterLightPulse;
+        public float monsterLightTargetIntensity;
+        public float monsterLightInTime;
+        public float monsterLightOutTime;
+
+        [Header("Monster Lunge")]
+        public bool useMonsterLunge;
+        public float lungeDistance;
+    }
+
+    [Header("Quality Tuning")]
+    public bool enableQualityTuning = true;
+    public bool autoTuneOnQualityChange = true;
+    [SerializeField] QualityPreset pcPreset = MakePcPreset();
+    [SerializeField] QualityPreset iGpuPreset = MakeIGpuPreset();
+    [SerializeField] QualityPreset mobilePreset = MakeMobilePreset();
+    int _lastQualityLevel = -999;
+
     [Header("오브젝트 참조")]
     public GameObject monster;                  // 점프스케어에 쓸 몬스터(또는 상자, 실루엣)
     public CanvasGroup fadeCanvasGroup;         // 화면을 까맣게 덮을 CanvasGroup
@@ -51,12 +86,26 @@ public class JumpscareTrigger : MonoBehaviour
     public bool useRotationShake = true;
     public float shakeRotationIntensity = 1.5f;
 
+    [Header("카메라 자동 할당")]
+    public bool autoResolveCameraTransform = true;
+    public bool preferTargetCameraForAutoResolve = true;
+    public bool allowPlayerControllerCameraSearch = true;
+
     [Header("몬스터 배치(선택)")]
     public bool placeMonsterAtCamera = true;    // 실패/외부 트리거에서도 확실히 보이도록 카메라 앞에 배치
     public Vector3 monsterCameraLocalPos = new Vector3(0f, -0.15f, 0.75f);
     public Vector3 monsterCameraLocalEuler = new Vector3(0f, 180f, 0f);
     public Vector3 monsterPositionJitter = new Vector3(0.03f, 0.02f, 0.03f);
     public Vector3 monsterRotationJitter = new Vector3(0f, 4f, 0f);
+
+    [Header("Player Visibility")]
+    public bool hidePlayerDuringJumpscare = true;
+    public Transform playerVisualRoot;
+    public Renderer[] playerRenderers;
+    public bool autoFindPlayerRenderers = true;
+    public bool includeInactivePlayerRenderers = true;
+    public bool hidePlayerByLayer = false;
+    public LayerMask playerHiddenLayers;
 
     [Header("Safety")]
     public bool photosensitiveSafeMode = true;
@@ -97,6 +146,14 @@ public class JumpscareTrigger : MonoBehaviour
     public bool useMonsterLightPulse = true;
     public Light monsterLight;
     public bool autoFindMonsterLight = true;
+    public bool autoCreateKeyLightIfMissing = true;
+    public bool keyLightAttachToCamera = true;
+    public LightType keyLightType = LightType.Spot;
+    public Vector3 keyLightCameraLocalPos = new Vector3(0f, 0.05f, 0.15f);
+    public Vector3 keyLightCameraLocalEuler = Vector3.zero;
+    public float keyLightRange = 4f;
+    [Range(1f, 179f)] public float keyLightSpotAngle = 70f;
+    public bool keyLightAimAtMonster = true;
     public float monsterLightTargetIntensity = 8f;
     public float monsterLightInTime = 0.05f;
     public float monsterLightHoldTime = 0.1f;
@@ -119,16 +176,22 @@ public class JumpscareTrigger : MonoBehaviour
 
     [Header("Editor Preview")]
     public bool showPlacementPreview = true;
+    public bool previewUseImpactPose = true;
+    public bool previewUseFovKick = true;
     public Color previewColor = new Color(1f, 0f, 0f, 0.3f);
     public float previewForwardLength = 0.35f;
     public bool showJitterPreview = true;
     public Color previewJitterColor = new Color(1f, 0.6f, 0f, 0.2f);
+    public bool showKeyLightPreview = true;
+    public Color keyLightPreviewColor = new Color(1f, 1f, 0.2f, 0.6f);
+    public float keyLightPreviewForwardLength = 0.5f;
 
     [Header("디버그 / 개발용")]
     public bool triggerOnlyOnce = true;         // true면 한 번만 발동
     public bool editorOnly = false;             // 에디터에서만 발동(빌드에선 무시)
 
     bool _triggered = false;
+    bool _playerRenderersHidden = false;
 
     float _originalAmbienceVolume;
     bool[] _originalLightEnabled;
@@ -140,6 +203,12 @@ public class JumpscareTrigger : MonoBehaviour
     Coroutine _restorePitchCo;
     Coroutine _duckCo;
     Coroutine _monsterLightCo;
+    Light _runtimeKeyLight;
+    readonly List<Renderer> _playerRenderers = new List<Renderer>(16);
+    readonly List<bool> _playerRendererEnabled = new List<bool>(16);
+    bool _playerLayerCullingActive = false;
+    int _playerLayerCullingMask = 0;
+    Camera _playerLayerCullingCamera;
     readonly List<AudioSource> _duckTargets = new List<AudioSource>(8);
     readonly List<float> _duckOriginalVolumes = new List<float>(8);
     readonly List<float> _duckStartVolumes = new List<float>(8);
@@ -147,6 +216,13 @@ public class JumpscareTrigger : MonoBehaviour
 
     void Awake()
     {
+        if (Application.isPlaying)
+        {
+            if (enableQualityTuning)
+                ApplyQualityTuning(force: true);
+            ResolveCameraTransformRuntime(forceAssign: true);
+        }
+
         _collider = GetComponent<Collider>();
 
         if (fadeCanvasGroup != null)
@@ -180,6 +256,12 @@ public class JumpscareTrigger : MonoBehaviour
         Trigger();
     }
 
+    void OnDisable()
+    {
+        if (!Application.isPlaying) return;
+        RestorePlayerRenderers();
+    }
+
     void Start()
     {
         if (!Application.isPlaying || !autoTriggerOnStart) return;
@@ -188,6 +270,105 @@ public class JumpscareTrigger : MonoBehaviour
         if (autoTriggerDelay <= 0f) TryTrigger();
         else StartCoroutine(AutoTriggerAfterDelay(autoTriggerDelay));
     }
+
+    void Update()
+    {
+        if (!Application.isPlaying) return;
+        if (!enableQualityTuning || !autoTuneOnQualityChange) return;
+        ApplyQualityTuning(force: false);
+    }
+
+    static QualityPreset MakePcPreset()
+    {
+        return new QualityPreset
+        {
+            qualityName = "PC",
+            photosensitiveSafeMode = true,
+
+            useImpactFlash = true,
+            impactFlashAlpha = 0.85f,
+            impactFlashCount = 1,
+            useCameraShake = true,
+            shakeIntensity = 0.1f,
+
+            useMonsterLightPulse = true,
+            monsterLightTargetIntensity = 8f,
+            monsterLightInTime = 0.05f,
+            monsterLightOutTime = 0.2f,
+
+            useMonsterLunge = true,
+            lungeDistance = 0.25f,
+        };
+    }
+
+    static QualityPreset MakeIGpuPreset()
+    {
+        var p = MakePcPreset();
+        p.qualityName = "iGPU";
+        p.shakeIntensity = 0.085f;
+        p.impactFlashAlpha = 0.75f;
+        p.monsterLightTargetIntensity = 7f;
+        p.lungeDistance = 0.22f;
+        return p;
+    }
+
+    static QualityPreset MakeMobilePreset()
+    {
+        var p = MakePcPreset();
+        p.qualityName = "Mobile";
+        p.useCameraShake = false;
+        p.shakeIntensity = 0.08f;
+        p.impactFlashAlpha = 0.65f;
+        p.monsterLightTargetIntensity = 6f;
+        p.lungeDistance = 0.2f;
+        return p;
+    }
+
+    void ApplyQualityTuning(bool force)
+    {
+        int level = QualitySettings.GetQualityLevel();
+        if (!force && level == _lastQualityLevel) return;
+        _lastQualityLevel = level;
+
+        var preset = ResolvePreset(GetQualityNameSafe(level));
+
+        photosensitiveSafeMode = preset.photosensitiveSafeMode;
+        useImpactFlash = preset.useImpactFlash;
+        impactFlashAlpha = preset.impactFlashAlpha;
+        impactFlashCount = preset.impactFlashCount;
+        useCameraShake = preset.useCameraShake;
+        shakeIntensity = preset.shakeIntensity;
+
+        useMonsterLightPulse = preset.useMonsterLightPulse;
+        monsterLightTargetIntensity = preset.monsterLightTargetIntensity;
+        monsterLightInTime = preset.monsterLightInTime;
+        monsterLightOutTime = preset.monsterLightOutTime;
+
+        useMonsterLunge = preset.useMonsterLunge;
+        lungeDistance = preset.lungeDistance;
+    }
+
+    static string GetQualityNameSafe(int level)
+    {
+        var names = QualitySettings.names;
+        if (names != null && level >= 0 && level < names.Length) return names[level];
+        return string.Empty;
+    }
+
+    QualityPreset ResolvePreset(string qualityName)
+    {
+        if (!string.IsNullOrEmpty(qualityName))
+        {
+            if (NameEquals(qualityName, pcPreset.qualityName) || NameEquals(qualityName, "PC")) return pcPreset;
+            if (NameEquals(qualityName, iGpuPreset.qualityName) || NameEquals(qualityName, "iGPU")) return iGpuPreset;
+            if (NameEquals(qualityName, mobilePreset.qualityName) || NameEquals(qualityName, "Mobile")) return mobilePreset;
+        }
+        return pcPreset;
+    }
+
+    static bool NameEquals(string a, string b)
+        => !string.IsNullOrEmpty(a) && !string.IsNullOrEmpty(b) &&
+           string.Equals(a, b, System.StringComparison.OrdinalIgnoreCase);
 
     // 다른 시스템(실패 처리 등)에서 직접 호출할 수 있도록 공개 트리거 제공
     public void Trigger()
@@ -203,6 +384,9 @@ public class JumpscareTrigger : MonoBehaviour
 #if UNITY_EDITOR
         if (editorOnly && !Application.isEditor) return false;
 #endif
+
+        if (Application.isPlaying)
+            ResolveCameraTransformRuntime(forceAssign: false);
 
         _triggered = true;
         if (!_collider) _collider = GetComponent<Collider>();
@@ -240,6 +424,8 @@ public class JumpscareTrigger : MonoBehaviour
 
         // 몬스터 + 카메라 쉐이크
         yield return StartCoroutine(WaitForMonsterWithBlackout(monsterDelay));
+        ResolveCameraTransformRuntime(forceAssign: false);
+        HidePlayerRenderers();
         if (monster != null)
         {
             if (placeMonsterAtCamera && cameraTransform != null)
@@ -282,6 +468,7 @@ public class JumpscareTrigger : MonoBehaviour
         if (autoRestart)
         {
             yield return new WaitForSeconds(delayBeforeRestart);
+            RestorePlayerRenderers();
             Scene current = SceneManager.GetActiveScene();
             SceneManager.LoadScene(current.buildIndex);
         }
@@ -290,6 +477,7 @@ public class JumpscareTrigger : MonoBehaviour
             // 자동 재시작을 사용하지 않으면 플레이어 컨트롤을 돌려줌
             if (playerController != null) playerController.enabled = true;
             if (monster != null) monster.SetActive(false);
+            RestorePlayerRenderers();
         }
     }
 
@@ -594,6 +782,7 @@ public class JumpscareTrigger : MonoBehaviour
         if (!useMonsterLightPulse) return;
         var light = ResolveMonsterLight();
         if (light == null) return;
+        PrepareMonsterLight(light);
         if (_monsterLightCo != null) StopCoroutine(_monsterLightCo);
         _monsterLightCo = StartCoroutine(MonsterLightPulse(light));
     }
@@ -643,6 +832,104 @@ public class JumpscareTrigger : MonoBehaviour
         if (!useMonsterLunge || monster == null) return;
         if (_lungeCo != null) StopCoroutine(_lungeCo);
         _lungeCo = StartCoroutine(MonsterLunge());
+    }
+
+    void HidePlayerRenderers()
+    {
+        if (!hidePlayerDuringJumpscare || _playerRenderersHidden) return;
+        CollectPlayerRenderers();
+        ApplyPlayerLayerCulling();
+        if (_playerRenderers.Count == 0) return;
+
+        _playerRendererEnabled.Clear();
+        for (int i = 0; i < _playerRenderers.Count; i++)
+        {
+            var renderer = _playerRenderers[i];
+            bool wasEnabled = renderer != null && renderer.enabled;
+            _playerRendererEnabled.Add(wasEnabled);
+            if (renderer != null) renderer.enabled = false;
+        }
+
+        _playerRenderersHidden = true;
+    }
+
+    void RestorePlayerRenderers()
+    {
+        if (!_playerRenderersHidden)
+        {
+            RestorePlayerLayerCulling();
+            return;
+        }
+
+        for (int i = 0; i < _playerRenderers.Count; i++)
+        {
+            var renderer = _playerRenderers[i];
+            if (renderer == null) continue;
+            bool enabled = i < _playerRendererEnabled.Count ? _playerRendererEnabled[i] : true;
+            renderer.enabled = enabled;
+        }
+
+        _playerRenderersHidden = false;
+        RestorePlayerLayerCulling();
+    }
+
+    void CollectPlayerRenderers()
+    {
+        _playerRenderers.Clear();
+        HashSet<Renderer> seen = new HashSet<Renderer>();
+
+        if (playerRenderers != null && playerRenderers.Length > 0)
+        {
+            for (int i = 0; i < playerRenderers.Length; i++)
+            {
+                var renderer = playerRenderers[i];
+                if (renderer == null || seen.Contains(renderer)) continue;
+                seen.Add(renderer);
+                _playerRenderers.Add(renderer);
+            }
+        }
+
+        Transform root = playerVisualRoot;
+        if (root == null && autoFindPlayerRenderers && playerController != null)
+            root = playerController.transform;
+
+        if (root != null)
+        {
+            var renderers = root.GetComponentsInChildren<Renderer>(includeInactivePlayerRenderers);
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                var renderer = renderers[i];
+                if (renderer == null || seen.Contains(renderer)) continue;
+                seen.Add(renderer);
+                _playerRenderers.Add(renderer);
+            }
+        }
+    }
+
+    void ApplyPlayerLayerCulling()
+    {
+        if (!hidePlayerByLayer || _playerLayerCullingActive) return;
+        int mask = playerHiddenLayers.value;
+        if (mask == 0) return;
+
+        Camera cam = ResolveImpactCamera();
+        if (cam == null) return;
+
+        _playerLayerCullingCamera = cam;
+        _playerLayerCullingMask = cam.cullingMask;
+        cam.cullingMask &= ~mask;
+        _playerLayerCullingActive = true;
+    }
+
+    void RestorePlayerLayerCulling()
+    {
+        if (!_playerLayerCullingActive) return;
+        Camera cam = _playerLayerCullingCamera != null ? _playerLayerCullingCamera : ResolveImpactCamera();
+        if (cam != null)
+            cam.cullingMask = _playerLayerCullingMask;
+        _playerLayerCullingActive = false;
+        _playerLayerCullingCamera = null;
+        _playerLayerCullingMask = 0;
     }
 
     IEnumerator MonsterLunge()
@@ -754,6 +1041,45 @@ public class JumpscareTrigger : MonoBehaviour
         }
 
         DrawPlacementPreview();
+
+        // 키 라이트 미리보기(몬스터 프리뷰와 별개로 표시)
+        Transform previewCamera = GetPreviewCameraTransform();
+        if (previewCamera != null)
+        {
+            Vector3 previewMonsterPos = transform.position;
+            if (monster != null)
+            {
+                if (placeMonsterAtCamera && TryGetPreviewPlacement(previewCamera, out Vector3 previewPos, out _))
+                    previewMonsterPos = previewPos;
+                else
+                    previewMonsterPos = monster.transform.position;
+            }
+            DrawKeyLightPreview(previewCamera, previewMonsterPos);
+        }
+    }
+
+    bool TryGetPreviewPlacement(Transform previewCamera, out Vector3 basePos, out Quaternion baseRot)
+    {
+        basePos = Vector3.zero;
+        baseRot = Quaternion.identity;
+        if (previewCamera == null) return false;
+
+        basePos = previewCamera.TransformPoint(monsterCameraLocalPos);
+        baseRot = previewCamera.rotation * Quaternion.Euler(monsterCameraLocalEuler);
+
+        if (previewUseImpactPose && useMonsterLunge && lungeDistance > 0f)
+        {
+            Vector3 toCamera = previewCamera.position - basePos;
+            if (toCamera.sqrMagnitude > 0.0001f)
+            {
+                float distance = toCamera.magnitude;
+                float maxLunge = Mathf.Min(lungeDistance, Mathf.Max(0f, distance - 0.1f));
+                if (maxLunge > 0f)
+                    basePos += toCamera.normalized * maxLunge;
+            }
+        }
+
+        return true;
     }
 
     void DrawPlacementPreview()
@@ -762,8 +1088,7 @@ public class JumpscareTrigger : MonoBehaviour
         Transform previewCamera = GetPreviewCameraTransform();
         if (previewCamera == null) return;
 
-        Vector3 basePos = previewCamera.TransformPoint(monsterCameraLocalPos);
-        Quaternion baseRot = previewCamera.rotation * Quaternion.Euler(monsterCameraLocalEuler);
+        if (!TryGetPreviewPlacement(previewCamera, out Vector3 basePos, out Quaternion baseRot)) return;
         Vector3 baseScale = monster.transform.lossyScale;
 
         Color oldColor = Gizmos.color;
@@ -832,12 +1157,63 @@ public class JumpscareTrigger : MonoBehaviour
         Gizmos.matrix = oldMatrix;
     }
 
+    void DrawKeyLightPreview(Transform previewCamera, Vector3 previewMonsterPos)
+    {
+        if (!showKeyLightPreview) return;
+        if (previewCamera == null) return;
+
+        Vector3 pos = previewCamera.TransformPoint(keyLightCameraLocalPos);
+        Quaternion rot = previewCamera.rotation * Quaternion.Euler(keyLightCameraLocalEuler);
+        Vector3 dir = keyLightAimAtMonster
+            ? (previewMonsterPos - pos).normalized
+            : (rot * Vector3.forward);
+        if (dir.sqrMagnitude < 0.0001f) dir = rot * Vector3.forward;
+
+        Gizmos.color = keyLightPreviewColor;
+        Gizmos.DrawSphere(pos, 0.05f);
+        if (keyLightPreviewForwardLength > 0f)
+            Gizmos.DrawLine(pos, pos + dir * keyLightPreviewForwardLength);
+    }
+
     Transform GetPreviewCameraTransform()
     {
+        if (Application.isPlaying)
+            ResolveCameraTransformRuntime(forceAssign: false);
+
+        return ResolveCameraTransformCandidate(includeCurrentCamera: !Application.isPlaying);
+    }
+
+    void ResolveCameraTransformRuntime(bool forceAssign)
+    {
+        if (!autoResolveCameraTransform) return;
+        if (!forceAssign && cameraTransform != null) return;
+
+        Transform resolved = ResolveCameraTransformCandidate(includeCurrentCamera: false);
+        if (resolved != null)
+            cameraTransform = resolved;
+    }
+
+    Transform ResolveCameraTransformCandidate(bool includeCurrentCamera)
+    {
         if (cameraTransform != null) return cameraTransform;
+
+        if (preferTargetCameraForAutoResolve && targetCamera != null)
+            return targetCamera.transform;
+
+        if (allowPlayerControllerCameraSearch && playerController != null)
+        {
+            var cam = playerController.GetComponentInChildren<Camera>(true);
+            if (cam != null) return cam.transform;
+        }
+
+        if (!preferTargetCameraForAutoResolve && targetCamera != null)
+            return targetCamera.transform;
+
         Camera main = Camera.main;
         if (main != null) return main.transform;
-        return Camera.current != null ? Camera.current.transform : null;
+        if (includeCurrentCamera && Camera.current != null) return Camera.current.transform;
+
+        return null;
     }
 
     Camera ResolveImpactCamera()
@@ -854,9 +1230,103 @@ public class JumpscareTrigger : MonoBehaviour
     Light ResolveMonsterLight()
     {
         if (monsterLight != null) return monsterLight;
-        if (!autoFindMonsterLight || monster == null) return null;
-        monsterLight = monster.GetComponentInChildren<Light>(true);
+        if (autoFindMonsterLight && monster != null)
+        {
+            monsterLight = monster.GetComponentInChildren<Light>(true);
+            if (monsterLight != null) return monsterLight;
+        }
+        if (!autoCreateKeyLightIfMissing) return null;
+
+        monsterLight = GetOrCreateRuntimeKeyLight();
         return monsterLight;
+    }
+
+    Light GetOrCreateRuntimeKeyLight()
+    {
+        if (_runtimeKeyLight != null) return _runtimeKeyLight;
+
+        Transform parent = ResolveKeyLightParent();
+        if (parent == null) return null;
+
+        var go = new GameObject("JumpscareKeyLight_Runtime");
+        if (keyLightAttachToCamera)
+            go.transform.SetParent(parent, false);
+
+        _runtimeKeyLight = go.AddComponent<Light>();
+        _runtimeKeyLight.type = keyLightType;
+        _runtimeKeyLight.range = Mathf.Max(0.1f, keyLightRange);
+        if (keyLightType == LightType.Spot)
+            _runtimeKeyLight.spotAngle = Mathf.Clamp(keyLightSpotAngle, 1f, 179f);
+        _runtimeKeyLight.shadows = LightShadows.None;
+        _runtimeKeyLight.enabled = false;
+        _runtimeKeyLight.intensity = 0f;
+
+        ApplyRuntimeKeyLightTransform();
+        return _runtimeKeyLight;
+    }
+
+    Transform ResolveKeyLightParent()
+    {
+        if (cameraTransform != null) return cameraTransform;
+        if (targetCamera != null) return targetCamera.transform;
+        Camera main = Camera.main;
+        return main != null ? main.transform : null;
+    }
+
+    void ApplyRuntimeKeyLightTransform()
+    {
+        if (_runtimeKeyLight == null) return;
+        Transform parent = ResolveKeyLightParent();
+        if (parent == null) return;
+
+        var tr = _runtimeKeyLight.transform;
+        if (keyLightAttachToCamera)
+        {
+            if (tr.parent != parent) tr.SetParent(parent, false);
+            tr.localPosition = keyLightCameraLocalPos;
+            tr.localRotation = Quaternion.Euler(keyLightCameraLocalEuler);
+        }
+        else
+        {
+            tr.position = parent.TransformPoint(keyLightCameraLocalPos);
+            tr.rotation = parent.rotation * Quaternion.Euler(keyLightCameraLocalEuler);
+        }
+    }
+
+    void PrepareMonsterLight(Light light)
+    {
+        if (light == null) return;
+
+        if (light == _runtimeKeyLight)
+        {
+            _runtimeKeyLight.type = keyLightType;
+            _runtimeKeyLight.range = Mathf.Max(0.1f, keyLightRange);
+            if (keyLightType == LightType.Spot)
+                _runtimeKeyLight.spotAngle = Mathf.Clamp(keyLightSpotAngle, 1f, 179f);
+            ApplyRuntimeKeyLightTransform();
+        }
+
+        if (keyLightAimAtMonster && monster != null)
+        {
+            Vector3 target = ResolveMonsterAimPoint();
+            Vector3 dir = target - light.transform.position;
+            if (dir.sqrMagnitude > 0.0001f)
+                light.transform.rotation = Quaternion.LookRotation(dir.normalized, Vector3.up);
+        }
+    }
+
+    Vector3 ResolveMonsterAimPoint()
+    {
+        if (monster == null) return transform.position;
+        var renderers = monster.GetComponentsInChildren<Renderer>(true);
+        if (renderers != null && renderers.Length > 0)
+        {
+            var b = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++)
+                b.Encapsulate(renderers[i].bounds);
+            return b.center;
+        }
+        return monster.transform.position;
     }
 
     float GetSafeFlashAlpha(float alpha)
