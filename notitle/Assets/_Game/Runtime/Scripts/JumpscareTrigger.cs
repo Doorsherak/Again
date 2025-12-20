@@ -133,6 +133,10 @@ public class JumpscareTrigger : MonoBehaviour
     public float preImpactBlackoutDuration = 0.03f;
     public float preImpactBlackoutLeadTime = 0.02f;
 
+    [Header("Camera Clipping")]
+    public bool overrideNearClipDuringJumpscare = false;
+    public float nearClipDuringJumpscare = 0.05f;
+
     [Header("Audio Ducking")]
     public bool useAudioDucking = true;
     public AudioSource[] duckSources;
@@ -209,6 +213,9 @@ public class JumpscareTrigger : MonoBehaviour
     bool _playerLayerCullingActive = false;
     int _playerLayerCullingMask = 0;
     Camera _playerLayerCullingCamera;
+    bool _nearClipOverridden = false;
+    float _nearClipOriginal = 0.3f;
+    Camera _nearClipCamera;
     readonly List<AudioSource> _duckTargets = new List<AudioSource>(8);
     readonly List<float> _duckOriginalVolumes = new List<float>(8);
     readonly List<float> _duckStartVolumes = new List<float>(8);
@@ -260,6 +267,7 @@ public class JumpscareTrigger : MonoBehaviour
     {
         if (!Application.isPlaying) return;
         RestorePlayerRenderers();
+        RestoreNearClipOverride();
     }
 
     void Start()
@@ -425,6 +433,7 @@ public class JumpscareTrigger : MonoBehaviour
         // 몬스터 + 카메라 쉐이크
         yield return StartCoroutine(WaitForMonsterWithBlackout(monsterDelay));
         ResolveCameraTransformRuntime(forceAssign: false);
+        ApplyNearClipOverride();
         HidePlayerRenderers();
         if (monster != null)
         {
@@ -469,6 +478,7 @@ public class JumpscareTrigger : MonoBehaviour
         {
             yield return new WaitForSeconds(delayBeforeRestart);
             RestorePlayerRenderers();
+            RestoreNearClipOverride();
             Scene current = SceneManager.GetActiveScene();
             SceneManager.LoadScene(current.buildIndex);
         }
@@ -478,6 +488,7 @@ public class JumpscareTrigger : MonoBehaviour
             if (playerController != null) playerController.enabled = true;
             if (monster != null) monster.SetActive(false);
             RestorePlayerRenderers();
+            RestoreNearClipOverride();
         }
     }
 
@@ -930,6 +941,28 @@ public class JumpscareTrigger : MonoBehaviour
         _playerLayerCullingActive = false;
         _playerLayerCullingCamera = null;
         _playerLayerCullingMask = 0;
+    }
+
+    void ApplyNearClipOverride()
+    {
+        if (!overrideNearClipDuringJumpscare || _nearClipOverridden) return;
+        Camera cam = ResolveImpactCamera();
+        if (cam == null) return;
+
+        _nearClipCamera = cam;
+        _nearClipOriginal = cam.nearClipPlane;
+        cam.nearClipPlane = Mathf.Max(0.01f, nearClipDuringJumpscare);
+        _nearClipOverridden = true;
+    }
+
+    void RestoreNearClipOverride()
+    {
+        if (!_nearClipOverridden) return;
+        if (_nearClipCamera != null)
+            _nearClipCamera.nearClipPlane = _nearClipOriginal;
+        _nearClipOverridden = false;
+        _nearClipCamera = null;
+        _nearClipOriginal = 0.3f;
     }
 
     IEnumerator MonsterLunge()

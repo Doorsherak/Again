@@ -1627,13 +1627,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 434373092}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.7071068, y: -0, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: 0.9704075, y: 0.97040737, z: 1.9408154}
-  m_LocalScale: {x: 0.9704075, y: 0.97040725, z: 0.97040725}
+  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 543017299}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!114 &434373094
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1672,12 +1672,12 @@ Light:
   m_GameObject: {fileID: 434373092}
   m_Enabled: 1
   serializedVersion: 11
-  m_Type: 0
+  m_Type: 2
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Intensity: 1000
-  m_Range: 2
-  m_SpotAngle: 14.191296
-  m_InnerSpotAngle: 14.191296
+  m_Range: 1
+  m_SpotAngle: 120.7424
+  m_InnerSpotAngle: 14.191299
   m_CookieSize: 10
   m_Shadows:
     m_Type: 0
@@ -2586,14 +2586,13 @@ MonoBehaviour:
   preferTargetCameraForAutoResolve: 1
   allowPlayerControllerCameraSearch: 1
   placeMonsterAtCamera: 1
-  monsterCameraLocalPos: {x: 0, y: -1.9, z: 0.47}
+  monsterCameraLocalPos: {x: 0, y: -1.9, z: 0.3}
   monsterCameraLocalEuler: {x: 2, y: 180, z: 0}
   monsterPositionJitter: {x: 0.03, y: 0.02, z: 0.03}
   monsterRotationJitter: {x: 0, y: 4, z: 0}
   hidePlayerDuringJumpscare: 1
   playerVisualRoot: {fileID: 68494950}
-  playerRenderers:
-  - {fileID: 0}
+  playerRenderers: []
   autoFindPlayerRenderers: 1
   includeInactivePlayerRenderers: 1
   hidePlayerByLayer: 0
@@ -2622,6 +2621,8 @@ MonoBehaviour:
   preImpactBlackoutAlpha: 1
   preImpactBlackoutDuration: 0.03
   preImpactBlackoutLeadTime: 0.02
+  overrideNearClipDuringJumpscare: 1
+  nearClipDuringJumpscare: 0.05
   useAudioDucking: 1
   duckSources: []
   duckTargetVolume: 0.1
@@ -2640,11 +2641,11 @@ MonoBehaviour:
   keyLightRange: 4
   keyLightSpotAngle: 70
   keyLightAimAtMonster: 1
-  monsterLightTargetIntensity: 8
+  monsterLightTargetIntensity: 16
   monsterLightInTime: 0.05
   monsterLightHoldTime: 0.1
   monsterLightOutTime: 0.2
-  overrideMonsterLightColor: 0
+  overrideMonsterLightColor: 1
   monsterLightColor: {r: 0.75, g: 0.85, b: 1, a: 1}
   useMonsterLunge: 1
   lungeDistance: 0.25
