@@ -1,4 +1,4 @@
-﻿// ScreenFader.cs — Unity 6 / uGUI용 화면 페이드(오버레이 방식)
+// ScreenFader.cs ? Unity 6 / uGUI용 화면 페이드(오버레이 방식)
 // 사용법 예) StartCoroutine(ScreenFader.FadeAndLoad("GameScene", 0.9f, 0.9f));
 
 using UnityEngine;
@@ -142,3 +142,4 @@ public class ScreenFader : MonoBehaviour
         img.raycastTarget = targetA > 0.01f; // 페이드 종료 후 입력 상태 정리
     }
 }
+

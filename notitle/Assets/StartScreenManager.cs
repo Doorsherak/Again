@@ -155,9 +155,9 @@ public class StartScreenManager_Safe : MonoBehaviour
         }
 
         var targetScene = ResolveSceneName();
-        if (targetScene != null)
+        if (!string.IsNullOrEmpty(targetScene))
         {
-            yield return ScreenFader.FadeAndLoad(targetScene, 0.9f, 0.9f);
+            yield return SceneTransitioner.LoadScene(targetScene, 0.9f, 0.9f);
             yield break;
         }
 
@@ -167,7 +167,7 @@ public class StartScreenManager_Safe : MonoBehaviour
             rootCg.alpha = Mathf.Lerp(1, 0, t / 0.9f); yield return null;
         }
         rootCg.alpha = 0f;
-        SceneManager.LoadScene(1);
+        yield return SceneTransitioner.LoadScene(1, 0.9f, 0.9f);
     }
 
     string ResolveSceneName()
@@ -176,7 +176,9 @@ public class StartScreenManager_Safe : MonoBehaviour
         for (int i = 0; i < SceneManager.sceneCountInBuildSettings; i++)
         {
             var path = SceneUtility.GetScenePathByBuildIndex(i);
-            if (path.EndsWith("/" + sceneName + ".unity")) return sceneName;
+            if (path.EndsWith("/" + sceneName + ".unity", System.StringComparison.OrdinalIgnoreCase) ||
+                path.EndsWith("\\" + sceneName + ".unity", System.StringComparison.OrdinalIgnoreCase))
+                return path;
         }
         return null;
     }

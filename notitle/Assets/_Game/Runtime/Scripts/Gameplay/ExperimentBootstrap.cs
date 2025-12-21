@@ -6,6 +6,24 @@ using UnityEngine.SceneManagement;
 
 public class ExperimentBootstrap : MonoBehaviour
 {
+    enum RunState
+    {
+        None,
+        InMenu,
+        Playing,
+        Failing,
+        Succeeding,
+        Transitioning
+    }
+
+    public static ExperimentBootstrap Instance { get; private set; }
+
+    [Header("Config")]
+    [SerializeField] ExperimentConfig config;
+    [SerializeField] bool loadConfigFromResourcesIfMissing = true;
+    [SerializeField] string configResourcePath = "Configs/ExperimentConfig";
+    [SerializeField] bool useConfigOverrides = true;
+
     [Header("Run")]
     [SerializeField] int requiredSamples = 3;
     [SerializeField] string startSceneName = "StartScreen";
@@ -27,15 +45,23 @@ public class ExperimentBootstrap : MonoBehaviour
     [SerializeField] AudioClip samplePickupClip;
     [SerializeField] Vector2 samplePickupVolumeRange = new Vector2(0.7f, 0.9f);
 
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+    [Header("Dev Hotkeys")]
+    [SerializeField] bool enableDevHotkeys = true;
+    [SerializeField] int devFixedSeed = 42;
+#endif
+
     ExperimentHud _hud;
     Transform _player;
     CharacterController _playerController;
     CorridorBuilder _corridor;
     JumpscareTrigger _jumpscare;
+    readonly List<ExperimentSamplePickup> _activeSamples = new List<ExperimentSamplePickup>(16);
+    ExperimentExitTrigger _exit;
 
     int _collected;
     bool _isWatching;
-    bool _ending;
+    RunState _state;
     Coroutine _setupCo;
     Coroutine _observationCo;
 
@@ -47,11 +73,31 @@ public class ExperimentBootstrap : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void AutoCreate()
     {
+        if (Instance != null) return;
         var existing = Object.FindFirstObjectByType<ExperimentBootstrap>(FindObjectsInactive.Include);
-        if (existing) return;
+        if (existing)
+        {
+            Instance = existing;
+            DontDestroyOnLoad(existing.gameObject);
+            return;
+        }
         var go = new GameObject("ExperimentBootstrap_Auto");
         DontDestroyOnLoad(go);
         go.AddComponent<ExperimentBootstrap>();
+    }
+
+    void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+
+        ResolveAndApplyConfig();
     }
 
     void OnEnable()
@@ -64,13 +110,55 @@ public class ExperimentBootstrap : MonoBehaviour
         SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
+    void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
+    }
+
+    void ResolveAndApplyConfig()
+    {
+        if (!useConfigOverrides) return;
+
+        if (config == null && loadConfigFromResourcesIfMissing && !string.IsNullOrEmpty(configResourcePath))
+            config = Resources.Load<ExperimentConfig>(configResourcePath);
+
+        if (config != null)
+            ApplyConfig(config);
+    }
+
+    void ApplyConfig(ExperimentConfig cfg)
+    {
+        if (cfg == null) return;
+
+        requiredSamples = cfg.requiredSamples;
+        if (!string.IsNullOrEmpty(cfg.startSceneName)) startSceneName = cfg.startSceneName;
+        if (!string.IsNullOrEmpty(cfg.playerTag)) playerTag = cfg.playerTag;
+
+        enableObservationRule = cfg.enableObservationRule;
+        stillSpeedThreshold = cfg.stillSpeedThreshold;
+        freeMoveDuration = cfg.freeMoveDuration;
+        watchDuration = cfg.watchDuration;
+
+        spawnSamples = cfg.spawnSamples;
+        spawnExit = cfg.spawnExit;
+        pickupHeight = cfg.pickupHeight;
+
+        if (cfg.samplePickupClip != null) samplePickupClip = cfg.samplePickupClip;
+        samplePickupVolumeRange = cfg.samplePickupVolumeRange;
+    }
+
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        _ending = false;
+        _state = string.Equals(scene.name, startSceneName, System.StringComparison.OrdinalIgnoreCase)
+            ? RunState.InMenu
+            : RunState.Playing;
         _collected = 0;
+        _isWatching = false;
         _speedHistory.Clear();
         _speedTimer = 0f;
         _avgSpeed = 0f;
+        _activeSamples.Clear();
+        _exit = null;
 
         if (_setupCo != null) StopCoroutine(_setupCo);
         if (_observationCo != null) StopCoroutine(_observationCo);
@@ -180,6 +268,7 @@ public class ExperimentBootstrap : MonoBehaviour
 
             var pickup = pickupGo.AddComponent<ExperimentSamplePickup>();
             pickup.bootstrap = this;
+            _activeSamples.Add(pickup);
 
             // Simple emissive-ish look without custom materials
             var renderer = pickupGo.GetComponent<MeshRenderer>();
@@ -204,6 +293,7 @@ public class ExperimentBootstrap : MonoBehaviour
 
         var exit = go.AddComponent<ExperimentExitTrigger>();
         exit.bootstrap = this;
+        _exit = exit;
     }
 
     List<Transform> GetCorridorModulesByIndex()
@@ -235,22 +325,29 @@ public class ExperimentBootstrap : MonoBehaviour
 
     IEnumerator CoObservationLoop()
     {
-        while (!_ending)
+        while (_state == RunState.Playing)
         {
             _isWatching = false;
             _hud?.SetStatus(string.Empty);
             yield return new WaitForSecondsRealtime(Random.Range(freeMoveDuration.x, freeMoveDuration.y));
+            if (_state != RunState.Playing) break;
 
             _isWatching = true;
             ResetSpeedSampling();
             _hud?.SetStatus("\uAD00\uCC30 \uC911 - \uC6C0\uC9C1\uC774\uC9C0 \uB9C8");
             yield return new WaitForSecondsRealtime(Random.Range(watchDuration.x, watchDuration.y));
         }
+
+        _isWatching = false;
+        _hud?.SetStatus(string.Empty);
     }
 
     void Update()
     {
-        if (_ending || !_player || !_isWatching) return;
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+        HandleDevHotkeys();
+#endif
+        if (_state != RunState.Playing || !_player || !_isWatching) return;
 
         UpdateAverageSpeed();
         if (_avgSpeed > stillSpeedThreshold)
@@ -298,8 +395,14 @@ public class ExperimentBootstrap : MonoBehaviour
     }
 
     public void OnCollectedSample()
+        => OnCollectedSample(null);
+
+    public void OnCollectedSample(ExperimentSamplePickup pickup)
     {
+        bool wasLocked = !CanExit();
         _collected++;
+        if (pickup != null) _activeSamples.Remove(pickup);
+        CleanupDestroyedSamples();
         _hud?.SetObjective($"\uC0D8\uD50C \uAC1C\uC218: {_collected} / {requiredSamples}");
         _hud?.ShowMessage("\uC0D8\uD50C \uD68C\uC218 \uC644\uB8CC.", 1.2f);
         if (samplePickupClip != null)
@@ -310,19 +413,161 @@ public class ExperimentBootstrap : MonoBehaviour
             if (uiSfxSource != null) uiSfxSource.PlayOneShot(samplePickupClip, volume);
             else AudioSource.PlayClipAtPoint(samplePickupClip, _player ? _player.position : Vector3.zero, volume);
         }
+
+        if (wasLocked && CanExit())
+            _hud?.ShowMessage("Exit unlocked.", 1.6f);
     }
 
     public int CollectedSamples => _collected;
     public int RequiredSamples => requiredSamples;
+    public int RemainingSamples => Mathf.Max(0, requiredSamples - _collected);
     public bool IsWatching => _isWatching;
-    public bool IsEnding => _ending;
+    public bool IsEnding => _state == RunState.Failing || _state == RunState.Succeeding || _state == RunState.Transitioning;
     public float AverageSpeed => _avgSpeed;
+    public Transform ExitTransform => _exit ? _exit.transform : null;
 
     public bool CanExit() => _collected >= requiredSamples;
 
+    public bool TryGetHintTarget(Vector3 fromWorld, out Vector3 targetWorldPos, out bool isExit)
+    {
+        if (CanExit() && _exit != null)
+        {
+            targetWorldPos = _exit.transform.position;
+            isExit = true;
+            return true;
+        }
+
+        CleanupDestroyedSamples();
+        ExperimentSamplePickup nearest = null;
+        float bestSqr = float.PositiveInfinity;
+
+        for (int i = 0; i < _activeSamples.Count; i++)
+        {
+            var s = _activeSamples[i];
+            if (s == null) continue;
+            float sqr = (s.transform.position - fromWorld).sqrMagnitude;
+            if (sqr < bestSqr)
+            {
+                bestSqr = sqr;
+                nearest = s;
+            }
+        }
+
+        if (nearest != null)
+        {
+            targetWorldPos = nearest.transform.position;
+            isExit = false;
+            return true;
+        }
+
+        targetWorldPos = Vector3.zero;
+        isExit = false;
+        return false;
+    }
+
+    void CleanupDestroyedSamples()
+    {
+        for (int i = _activeSamples.Count - 1; i >= 0; i--)
+        {
+            if (_activeSamples[i] == null)
+                _activeSamples.RemoveAt(i);
+        }
+    }
+
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+    void HandleDevHotkeys()
+    {
+        if (!enableDevHotkeys) return;
+
+        var transitioner = SceneTransitioner.Ensure();
+        if (transitioner != null && transitioner.IsTransitioning) return;
+        if (_state == RunState.Transitioning) return;
+
+        if (Input.GetKeyDown(KeyCode.F1) && _state == RunState.Playing)
+        {
+            OnCollectedSample(null);
+            _hud?.ShowMessage("DEV: +1 sample", 0.8f);
+        }
+
+        if (Input.GetKeyDown(KeyCode.F2) && _state == RunState.Playing)
+        {
+            ForceUnlockExit();
+        }
+
+        if (Input.GetKeyDown(KeyCode.F3) && _state == RunState.Playing)
+        {
+            StartCoroutine(CoFail());
+        }
+
+        if (Input.GetKeyDown(KeyCode.F4) && _state == RunState.Playing)
+        {
+            StartCoroutine(CoWin());
+        }
+
+        if (Input.GetKeyDown(KeyCode.F5))
+        {
+            _state = RunState.Transitioning;
+            _isWatching = false;
+            StartCoroutine(SceneTransitioner.LoadScene(SceneManager.GetActiveScene().buildIndex));
+        }
+
+        if (Input.GetKeyDown(KeyCode.F6))
+        {
+            _state = RunState.Transitioning;
+            _isWatching = false;
+            StartCoroutine(SceneTransitioner.LoadScene(startSceneName));
+        }
+
+        if (Input.GetKeyDown(KeyCode.F7) && _state == RunState.Playing)
+        {
+            enableObservationRule = !enableObservationRule;
+            if (!enableObservationRule)
+            {
+                if (_observationCo != null) StopCoroutine(_observationCo);
+                _observationCo = null;
+                _isWatching = false;
+                _hud?.SetStatus(string.Empty);
+                _hud?.ShowMessage("DEV: Observation OFF", 1.0f);
+            }
+            else
+            {
+                if (_player != null) _observationCo = StartCoroutine(CoObservationLoop());
+                _hud?.ShowMessage("DEV: Observation ON", 1.0f);
+            }
+        }
+
+        if (Input.GetKeyDown(KeyCode.F8) && _state == RunState.Playing)
+        {
+            CorridorBuilder.UseSeedOverride = !CorridorBuilder.UseSeedOverride;
+            CorridorBuilder.SeedOverride = devFixedSeed;
+            _hud?.ShowMessage(
+                $"DEV: SeedOverride {(CorridorBuilder.UseSeedOverride ? "ON" : "OFF")} ({CorridorBuilder.SeedOverride})",
+                1.6f);
+
+            _state = RunState.Transitioning;
+            _isWatching = false;
+            StartCoroutine(SceneTransitioner.LoadScene(SceneManager.GetActiveScene().buildIndex));
+        }
+    }
+
+    void ForceUnlockExit()
+    {
+        _collected = requiredSamples;
+        for (int i = 0; i < _activeSamples.Count; i++)
+        {
+            var s = _activeSamples[i];
+            if (s != null) Destroy(s.gameObject);
+        }
+        _activeSamples.Clear();
+
+        _hud?.SetObjective($"\uC0D8\uD50C \uAC1C\uC218: {_collected} / {requiredSamples}");
+        _hud?.ShowMessage("DEV: Exit unlocked.", 1.2f);
+    }
+#endif
+
     public void OnReachedExit()
     {
-        if (_ending) return;
+        if (_state != RunState.Playing) return;
         if (!CanExit())
         {
             _hud?.ShowMessage($"\uC0D8\uD50C\uC774 \uBD80\uC871\uD569\uB2C8\uB2E4. ({_collected}/{requiredSamples})", 1.8f);
@@ -334,26 +579,35 @@ public class ExperimentBootstrap : MonoBehaviour
 
     IEnumerator CoWin()
     {
-        _ending = true;
+        if (_state != RunState.Playing) yield break;
+        _state = RunState.Succeeding;
+        _isWatching = false;
         _hud?.ShowMessage("\uC2E4\uD5D8 \uC885\uB8CC. \uD68C\uC218 \uC131\uACF5.", 2.0f);
-        yield return new WaitForSecondsRealtime(3.0f);
-        SceneManager.LoadScene(startSceneName);
+        yield return new WaitForSecondsRealtime(2.0f);
+        _state = RunState.Transitioning;
+        yield return SceneTransitioner.LoadScene(startSceneName);
     }
 
     IEnumerator CoFail()
     {
-        if (_ending) yield break;
-        _ending = true;
+        if (_state != RunState.Playing) yield break;
+        _state = RunState.Failing;
+        _isWatching = false;
 
         Time.timeScale = 1f;
         _hud?.ShowMessage("\uC2E4\uD5D8 \uC2E4\uD328. \uC6C0\uC9C1\uC784 \uAC10\uC9C0.", 1.6f);
         if (_jumpscare != null)
         {
             _jumpscare.autoRestart = true;
-            if (_jumpscare.TryTrigger()) yield break;
+            if (_jumpscare.TryTrigger())
+            {
+                _state = RunState.Transitioning;
+                yield break;
+            }
         }
 
         yield return new WaitForSecondsRealtime(1.2f);
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        _state = RunState.Transitioning;
+        yield return SceneTransitioner.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 }

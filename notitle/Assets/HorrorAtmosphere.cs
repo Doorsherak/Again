@@ -10,6 +10,11 @@ public class HorrorAtmosphere : MonoBehaviour
     public Light[] allLights;                   // 비워두면 자동 수집
     public PostProcessVolume postProcessVolume; // PPS v2 사용 시
 
+    [Header("Post Processing (Perf)")]
+    public bool throttlePostProcessing = true;
+    [Range(0.02f, 0.5f)] public float postProcessingUpdateInterval = 0.1f;
+    [Range(0f, 0.05f)] public float postProcessingUpdateEpsilon = 0.005f;
+
     [Header("Lighting: Flicker & Brownout")]
     [Range(0f, 1f)] public float horrorLevel = 0.5f; // 0~1
     public float meanBrownoutInterval = 60f;         // 평균 정전 간격(초)
@@ -51,6 +56,11 @@ public class HorrorAtmosphere : MonoBehaviour
     float nextBrownoutTime;
     float nextCreepyTime;
     bool isBrownout = false;
+
+    float _postProcessingTimer;
+    float _lastPostProcessingHorror = -999f;
+    float _lastPostProcessingStress = -999f;
+    bool _lastPostProcessingBrownout;
     float mains = 1f; // 전력 계수(0=정전, 1=정상)
 
     void Awake()
@@ -139,7 +149,7 @@ public class HorrorAtmosphere : MonoBehaviour
         RenderSettings.fogDensity = baseFogDensity + (fogN - 0.5f) * fogJitterAmp * (0.5f + stress);
 
         // 후처리(있으면) 공포/스트레스 연동
-        ApplyPostProcessing();
+        MaybeApplyPostProcessing();
     }
 
     void ScheduleNext(ref float nextTime, float meanInterval)
@@ -244,6 +254,35 @@ public class HorrorAtmosphere : MonoBehaviour
 
         // 들으면 살짝 스트레스
         AddStress(0.08f);
+    }
+
+    void MaybeApplyPostProcessing()
+    {
+        if (postProcessVolume == null || postProcessVolume.profile == null) return;
+
+        if (!throttlePostProcessing)
+        {
+            ApplyPostProcessing();
+            _lastPostProcessingHorror = horrorLevel;
+            _lastPostProcessingStress = stress;
+            _lastPostProcessingBrownout = isBrownout;
+            return;
+        }
+
+        _postProcessingTimer -= Time.deltaTime;
+
+        bool changed =
+            Mathf.Abs(horrorLevel - _lastPostProcessingHorror) > postProcessingUpdateEpsilon ||
+            Mathf.Abs(stress - _lastPostProcessingStress) > postProcessingUpdateEpsilon ||
+            isBrownout != _lastPostProcessingBrownout;
+
+        if (!changed && _postProcessingTimer > 0f) return;
+
+        ApplyPostProcessing();
+        _postProcessingTimer = Mathf.Max(0.02f, postProcessingUpdateInterval);
+        _lastPostProcessingHorror = horrorLevel;
+        _lastPostProcessingStress = stress;
+        _lastPostProcessingBrownout = isBrownout;
     }
 
     void ApplyPostProcessing()

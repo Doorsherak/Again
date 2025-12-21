@@ -6,6 +6,14 @@ using UnityEngine.UI;
 [DisallowMultipleComponent]
 public class HorrorAtmosphereDirector : MonoBehaviour
 {
+    public static HorrorAtmosphereDirector Instance { get; private set; }
+
+    [Header("Config")]
+    [SerializeField] HorrorAtmosphereDirectorConfig config;
+    [SerializeField] bool loadConfigFromResourcesIfMissing = true;
+    [SerializeField] string configResourcePath = "Configs/HorrorAtmosphereDirectorConfig";
+    [SerializeField] bool useConfigOverrides = true;
+
     [System.Serializable]
     struct QualityPreset
     {
@@ -115,11 +123,31 @@ public class HorrorAtmosphereDirector : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void AutoCreate()
     {
+        if (Instance != null) return;
         var existing = Object.FindFirstObjectByType<HorrorAtmosphereDirector>(FindObjectsInactive.Include);
-        if (existing) return;
+        if (existing)
+        {
+            Instance = existing;
+            DontDestroyOnLoad(existing.gameObject);
+            return;
+        }
         var go = new GameObject("HorrorAtmosphereDirector_Auto");
         DontDestroyOnLoad(go);
         go.AddComponent<HorrorAtmosphereDirector>();
+    }
+
+    void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+
+        ResolveAndApplyConfig();
     }
 
     void OnEnable()
@@ -132,6 +160,69 @@ public class HorrorAtmosphereDirector : MonoBehaviour
     void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
+    }
+
+    void ResolveAndApplyConfig()
+    {
+        if (!useConfigOverrides) return;
+
+        if (config == null && loadConfigFromResourcesIfMissing && !string.IsNullOrEmpty(configResourcePath))
+            config = Resources.Load<HorrorAtmosphereDirectorConfig>(configResourcePath);
+
+        if (config != null)
+            ApplyConfig(config);
+    }
+
+    void ApplyConfig(HorrorAtmosphereDirectorConfig cfg)
+    {
+        if (cfg == null) return;
+
+        enableDirector = cfg.enableDirector;
+        disableInMenuScenes = cfg.disableInMenuScenes;
+        menuSceneNames = cfg.menuSceneNames;
+
+        baseTension = cfg.baseTension;
+        watchingTension = cfg.watchingTension;
+        progressWeight = cfg.progressWeight;
+        responseSpeed = cfg.responseSpeed;
+
+        photosensitiveSafeMode = cfg.photosensitiveSafeMode;
+        safeMaxVignettePulseAmount = cfg.safeMaxVignettePulseAmount;
+        safeMaxVignettePulseSpeed = cfg.safeMaxVignettePulseSpeed;
+
+        enableVignette = cfg.enableVignette;
+        vignetteMinAlpha = cfg.vignetteMinAlpha;
+        vignetteMaxAlpha = cfg.vignetteMaxAlpha;
+        vignettePulseSpeed = cfg.vignettePulseSpeed;
+        vignettePulseAmount = cfg.vignettePulseAmount;
+        vignetteTextureSize = cfg.vignetteTextureSize;
+        vignetteInnerRadius = cfg.vignetteInnerRadius;
+        vignetteOuterRadius = cfg.vignetteOuterRadius;
+        overlaySortingOrder = cfg.overlaySortingOrder;
+
+        enableLowPass = cfg.enableLowPass;
+        lowPassMinCutoff = cfg.lowPassMinCutoff;
+        lowPassMaxCutoff = cfg.lowPassMaxCutoff;
+        lowPassResonanceQ = cfg.lowPassResonanceQ;
+
+        enableLampFlickerOnWatchStart = cfg.enableLampFlickerOnWatchStart;
+        watchStartFlickerChance = cfg.watchStartFlickerChance;
+        flickerBurstCount = cfg.flickerBurstCount;
+        flickerBurstSpacing = cfg.flickerBurstSpacing;
+
+        enableStingers = cfg.enableStingers;
+        if (cfg.stingerClips != null && cfg.stingerClips.Length > 0) stingerClips = cfg.stingerClips;
+        stingerInterval = cfg.stingerInterval;
+        stingerVolumeRange = cfg.stingerVolumeRange;
+        stingerPitchRange = cfg.stingerPitchRange;
+        spatializeStingers = cfg.spatializeStingers;
+        behindChance = cfg.behindChance;
+        stingerDistance = cfg.stingerDistance;
     }
 
     void OnSceneLoaded(Scene s, LoadSceneMode m)

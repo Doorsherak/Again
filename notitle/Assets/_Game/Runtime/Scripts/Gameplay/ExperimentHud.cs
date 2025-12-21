@@ -5,6 +5,8 @@ using UnityEngine.UI;
 [DisallowMultipleComponent]
 public class ExperimentHud : MonoBehaviour
 {
+    public static ExperimentHud Instance { get; private set; }
+
     [Header("Layout")]
     [SerializeField] Vector2 padding = new Vector2(48f, 48f);
     [SerializeField] float lineSpacing = 6f;
@@ -21,6 +23,11 @@ public class ExperimentHud : MonoBehaviour
     [Header("Message")]
     [SerializeField] float messageFadeIn = 0.08f;
     [SerializeField] float messageFadeOut = 0.25f;
+
+    [Header("Hint")]
+    [SerializeField] bool showHint = true;
+    [SerializeField] float hintUpdateInterval = 0.12f;
+    [SerializeField] Color hintColor = new Color(0.72f, 0.84f, 0.96f, 0.95f);
 
     [Header("Status")]
     [SerializeField] bool statusAtTop = false;
@@ -43,16 +50,33 @@ public class ExperimentHud : MonoBehaviour
     CanvasGroup _cg;
     Text _status;
     Text _objective;
+    Text _hint;
     Text _message;
     Coroutine _messageCo;
     ExperimentBootstrap _bootstrap;
     bool _statusWarning;
     Color _statusBaseColor = Color.white;
+    float _hintTimer;
+    Camera _hintCamera;
+
+    static readonly string[] HintArrows = { "↑", "↗", "→", "↘", "↓", "↙", "←", "↖" };
 
     void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
         DontDestroyOnLoad(gameObject);
         Build();
+    }
+
+    void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
     }
 
     void Build()
@@ -181,6 +205,8 @@ public class ExperimentHud : MonoBehaviour
         }
 
         _objective = CreateText(panel.transform, "Objective", 28);
+        _hint = CreateText(panel.transform, "Hint", 26);
+        if (_hint) _hint.color = hintColor;
         _message = CreateText(panel.transform, "Message", 30);
         SetAlpha(_message, 0f);
     }
@@ -197,6 +223,63 @@ public class ExperimentHud : MonoBehaviour
         }
 
         UpdateStatusBlink();
+        UpdateHint();
+    }
+
+    void UpdateHint()
+    {
+        if (_hint == null) return;
+        if (!showHint) { _hint.text = string.Empty; return; }
+
+        _hintTimer += Time.unscaledDeltaTime;
+        float interval = Mathf.Max(0.02f, hintUpdateInterval);
+        if (_hintTimer < interval) return;
+        _hintTimer = 0f;
+
+        if (_bootstrap == null)
+            _bootstrap = FindFirstObjectByType<ExperimentBootstrap>(FindObjectsInactive.Include);
+        if (_bootstrap == null || _bootstrap.IsEnding)
+        {
+            _hint.text = string.Empty;
+            return;
+        }
+
+        if (_hintCamera == null) _hintCamera = Camera.main;
+        if (_hintCamera == null)
+        {
+            _hint.text = string.Empty;
+            return;
+        }
+
+        if (!_bootstrap.TryGetHintTarget(_hintCamera.transform.position, out var targetPos, out bool isExit))
+        {
+            _hint.text = string.Empty;
+            return;
+        }
+
+        Vector3 to = targetPos - _hintCamera.transform.position;
+        to.y = 0f;
+        float dist = to.magnitude;
+        if (dist < 0.05f)
+        {
+            _hint.text = string.Empty;
+            return;
+        }
+
+        Vector3 fwd = _hintCamera.transform.forward;
+        fwd.y = 0f;
+        if (fwd.sqrMagnitude < 0.0001f) fwd = Vector3.forward;
+        fwd.Normalize();
+
+        Vector3 dir = to / dist;
+        float angle = Vector3.SignedAngle(fwd, dir, Vector3.up);
+        float normalized = (angle + 360f) % 360f;
+        int idx = Mathf.RoundToInt(normalized / 45f) % 8;
+        string arrow = HintArrows[idx];
+
+        string label = isExit ? "EXIT" : "SAMPLE";
+        string extra = isExit ? string.Empty : $" ({_bootstrap.RemainingSamples} left)";
+        _hint.text = $"{label} {arrow} {dist:0}m{extra}";
     }
 
     public void SetVisible(bool visible)

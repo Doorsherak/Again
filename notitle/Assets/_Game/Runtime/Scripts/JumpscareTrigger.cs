@@ -42,6 +42,12 @@ public class JumpscareTrigger : MonoBehaviour
     [SerializeField] QualityPreset mobilePreset = MakeMobilePreset();
     int _lastQualityLevel = -999;
 
+    [Header("Config")]
+    [SerializeField] JumpscareConfig config;
+    [SerializeField] bool loadConfigFromResourcesIfMissing = false;
+    [SerializeField] string configResourcePath = "Configs/JumpscareConfig";
+    [SerializeField] bool useConfigOverrides = true;
+
     [Header("오브젝트 참조")]
     public GameObject monster;                  // 점프스케어에 쓸 몬스터(또는 상자, 실루엣)
     public CanvasGroup fadeCanvasGroup;         // 화면을 까맣게 덮을 CanvasGroup
@@ -246,6 +252,7 @@ public class JumpscareTrigger : MonoBehaviour
             if (enableQualityTuning)
                 ApplyQualityTuning(force: true);
             ResolveCameraTransformRuntime(forceAssign: true);
+            ResolveAndApplyConfig();
         }
 
         _collider = GetComponent<Collider>();
@@ -399,6 +406,45 @@ public class JumpscareTrigger : MonoBehaviour
     static bool NameEquals(string a, string b)
         => !string.IsNullOrEmpty(a) && !string.IsNullOrEmpty(b) &&
            string.Equals(a, b, System.StringComparison.OrdinalIgnoreCase);
+
+    void ResolveAndApplyConfig()
+    {
+        if (!useConfigOverrides) return;
+
+        if (config == null && loadConfigFromResourcesIfMissing && !string.IsNullOrEmpty(configResourcePath))
+            config = Resources.Load<JumpscareConfig>(configResourcePath);
+
+        if (config != null)
+            ApplyConfig(config);
+    }
+
+    void ApplyConfig(JumpscareConfig cfg)
+    {
+        if (cfg == null) return;
+
+        photosensitiveSafeMode = cfg.photosensitiveSafeMode;
+        safeMaxFlashAlpha = cfg.safeMaxFlashAlpha;
+        safeMaxFlashCount = cfg.safeMaxFlashCount;
+        safeMinFlashDuration = cfg.safeMinFlashDuration;
+        safeMaxBlackoutAlpha = cfg.safeMaxBlackoutAlpha;
+        safeMinBlackoutDuration = cfg.safeMinBlackoutDuration;
+        safeMinLightPulseTime = cfg.safeMinLightPulseTime;
+        safeMaxMonsterLightIntensity = cfg.safeMaxMonsterLightIntensity;
+
+        if (!cfg.overrideImpact) return;
+
+        useImpactFlash = cfg.useImpactFlash;
+        impactFlashAlpha = cfg.impactFlashAlpha;
+        impactFlashCount = cfg.impactFlashCount;
+        impactFlashDuration = cfg.impactFlashDuration;
+        impactFlashGap = cfg.impactFlashGap;
+
+        useCameraShake = cfg.useCameraShake;
+        shakeDuration = cfg.shakeDuration;
+        shakeIntensity = cfg.shakeIntensity;
+        useRotationShake = cfg.useRotationShake;
+        shakeRotationIntensity = cfg.shakeRotationIntensity;
+    }
 
     // 다른 시스템(실패 처리 등)에서 직접 호출할 수 있도록 공개 트리거 제공
     public void Trigger()

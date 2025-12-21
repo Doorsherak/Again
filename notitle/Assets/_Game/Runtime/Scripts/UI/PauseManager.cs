@@ -49,6 +49,7 @@ public class PauseManager : MonoBehaviour
     // ---------- Cursor & UI Safety ----------
     [Header("Cursor Policy")]
     [SerializeField] bool manageCursor = true;                 // 커서를 이 스크립트가 관리
+    [SerializeField] bool preferSceneTransitionerCursorPolicy = true;
     [SerializeField] bool lockCursorOnlyInGameplay = true;     // 게임 씬에서만 잠금
     [SerializeField] string[] menuSceneNames = new[] { "StartScreen" }; // 여러 메뉴 씬
 
@@ -220,6 +221,16 @@ public class PauseManager : MonoBehaviour
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
             return;
+        }
+
+        if (preferSceneTransitionerCursorPolicy)
+        {
+            var transitioner = SceneTransitioner.Instance;
+            if (transitioner != null && transitioner.AppliesCursorPolicy)
+            {
+                transitioner.ApplyCursorPolicyForActiveScene();
+                return;
+            }
         }
 
         // 메뉴 = 보임, 게임 = 잠금

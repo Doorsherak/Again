@@ -33,8 +33,26 @@ public class CorridorBuilder : MonoBehaviour
     [Tooltip("같은 시드를 쓰면 항상 같은 레이아웃이 나옴")]
     public int randomSeed = 42;
 
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+    public static bool UseSeedOverride;
+    public static int SeedOverride;
+#endif
+
     [Tooltip("총 길이(문자 수). 기본값 15")]
     public int randomLength = 15;
+
+    [Header("Random layout (Pacing)")]
+    [Tooltip("랜덤 레이아웃을 '페이싱' 있게 생성합니다(초반 직선↑, 중반 회전↑, 중간에 문(D) 비트 삽입).")]
+    public bool usePacedRandomLayout = true;
+
+    [Tooltip("페이싱 모드에서 삽입할 Door(D) 비트 수")]
+    [Range(0, 4)] public int pacedDoorBeats = 2;
+
+    [Tooltip("연속 회전(L/R) 최대 허용 횟수. 초과 시 강제로 F를 배치합니다.")]
+    [Range(0, 4)] public int maxConsecutiveTurns = 2;
+
+    [Tooltip("true면 마지막 글자를 항상 E(DeadEnd)로 고정합니다.")]
+    public bool forceDeadEndAtEnd = true;
 
 
 
@@ -86,7 +104,13 @@ public class CorridorBuilder : MonoBehaviour
 
         if (useRandomLayout)
         {
-            layout = GenerateRandomLayout(randomLength, randomSeed);
+            int seed = randomSeed;
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+            if (UseSeedOverride) seed = SeedOverride;
+#endif
+            layout = usePacedRandomLayout
+                ? GeneratePacedRandomLayout(randomLength, seed)
+                : GenerateRandomLayout(randomLength, seed);
             UnityEngine.Debug.Log($"[CorridorBuilder] Random layout generated: {layout}", this);
         }
 
@@ -171,6 +195,80 @@ public class CorridorBuilder : MonoBehaviour
         // 마지막 글자는 D 또는 E
         result[totalLength - 1] = (rng.Next(0, 2) == 0) ? 'D' : 'E';
 
+        return new string(result);
+    }
+
+    string GeneratePacedRandomLayout(int totalLength, int seed)
+    {
+        if (totalLength < 1)
+        {
+            Debug.LogError("[CorridorBuilder] totalLength 는 1 이상이어야 합니다.");
+            totalLength = 1;
+        }
+
+        var rng = new System.Random(seed);
+        char[] result = new char[totalLength];
+        int bodyLength = Mathf.Max(1, totalLength - 1);
+
+        // Door(D) beats (avoid first/last of body when possible)
+        bool[] doorSlots = new bool[bodyLength];
+        int doorCount = Mathf.Clamp(pacedDoorBeats, 0, Mathf.Max(0, bodyLength - 1));
+        if (doorCount > 0 && bodyLength > 1)
+        {
+            int minPos = bodyLength > 2 ? 1 : 0;
+            int maxPos = bodyLength > 2 ? bodyLength - 2 : bodyLength - 1;
+            for (int d = 1; d <= doorCount; d++)
+            {
+                float t = d / (float)(doorCount + 1);
+                int pos = Mathf.RoundToInt((bodyLength - 1) * t);
+                pos = Mathf.Clamp(pos, minPos, maxPos);
+                doorSlots[pos] = true;
+            }
+        }
+
+        int consecutiveTurns = 0;
+        char prev = '\0';
+        char prev2 = '\0';
+
+        for (int i = 0; i < bodyLength; i++)
+        {
+            if (doorSlots[i])
+            {
+                result[i] = 'D';
+                consecutiveTurns = 0;
+                prev2 = prev;
+                prev = 'D';
+                continue;
+            }
+
+            float p = bodyLength <= 1 ? 0f : i / (float)(bodyLength - 1);
+            double straightChance = (p < 0.35f) ? 0.72 : (p < 0.75f ? 0.55 : 0.62);
+
+            bool prevTurn = prev == 'L' || prev == 'R';
+            bool prev2Turn = prev2 == 'L' || prev2 == 'R';
+            if (prevTurn && prev2Turn) straightChance = Math.Max(straightChance, 0.85);
+
+            char c;
+            if (maxConsecutiveTurns > 0 && consecutiveTurns >= maxConsecutiveTurns)
+            {
+                c = 'F';
+            }
+            else if (rng.NextDouble() < straightChance)
+            {
+                c = 'F';
+            }
+            else
+            {
+                c = (rng.Next(0, 2) == 0) ? 'L' : 'R';
+            }
+
+            result[i] = c;
+            consecutiveTurns = (c == 'L' || c == 'R') ? (consecutiveTurns + 1) : 0;
+            prev2 = prev;
+            prev = c;
+        }
+
+        result[totalLength - 1] = forceDeadEndAtEnd ? 'E' : ((rng.Next(0, 2) == 0) ? 'D' : 'E');
         return new string(result);
     }
 
