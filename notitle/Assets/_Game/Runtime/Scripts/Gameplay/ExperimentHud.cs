@@ -251,7 +251,10 @@ public class ExperimentHud : MonoBehaviour
             return;
         }
 
-        if (!_bootstrap.TryGetHintTarget(_hintCamera.transform.position, out var targetPos, out bool isExit))
+        if (!_bootstrap.TryGetHintTarget(
+                _hintCamera.transform.position,
+                out var targetPos,
+                out ExperimentBootstrap.HintTargetKind kind))
         {
             _hint.text = string.Empty;
             return;
@@ -277,8 +280,17 @@ public class ExperimentHud : MonoBehaviour
         int idx = Mathf.RoundToInt(normalized / 45f) % 8;
         string arrow = HintArrows[idx];
 
-        string label = isExit ? "EXIT" : "SAMPLE";
-        string extra = isExit ? string.Empty : $" ({_bootstrap.RemainingSamples} left)";
+        string label = kind == ExperimentBootstrap.HintTargetKind.Exit
+            ? "EXIT"
+            : (kind == ExperimentBootstrap.HintTargetKind.Analyzer ? "ANALYZER" : "SAMPLE");
+
+        string extra = kind switch
+        {
+            ExperimentBootstrap.HintTargetKind.Exit => string.Empty,
+            ExperimentBootstrap.HintTargetKind.Analyzer => $" ({_bootstrap.RawSamples} to process)",
+            _ => $" ({_bootstrap.RemainingSamples} left)"
+        };
+
         _hint.text = $"{label} {arrow} {dist:0}m{extra}";
     }
 

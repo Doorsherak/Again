@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using static System.Net.Mime.MediaTypeNames;
 // 아래 줄을 추가하여 UnityEngine.Application을 명시적으로 사용
@@ -40,6 +41,15 @@ public class CorridorBuilder : MonoBehaviour
 
     [Tooltip("총 길이(문자 수). 기본값 15")]
     public int randomLength = 15;
+
+    [Tooltip("플레이할 때마다 시드를 랜덤으로 변경합니다(디버그 재현이 필요하면 OFF).")]
+    public bool randomizeSeedEachBuild = true;
+
+    [Tooltip("랜덤 레이아웃 생성 시, 지나간 위치로 되돌아가며 루프를 만드는 패턴을 피합니다.")]
+    public bool avoidSelfIntersection = true;
+
+    [Tooltip("avoidSelfIntersection 사용 시 유효 레이아웃을 찾는 최대 시도 횟수")]
+    [Range(1, 200)] public int maxGenerateAttempts = 30;
 
     [Header("Random layout (Pacing)")]
     [Tooltip("랜덤 레이아웃을 '페이싱' 있게 생성합니다(초반 직선↑, 중반 회전↑, 중간에 문(D) 비트 삽입).")]
@@ -106,12 +116,50 @@ public class CorridorBuilder : MonoBehaviour
         {
             int seed = randomSeed;
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
+            bool seedOverridden = false;
             if (UseSeedOverride) seed = SeedOverride;
+            else if (randomizeSeedEachBuild && Application.isPlaying) seed = UnityEngine.Random.Range(0, int.MaxValue);
+            seedOverridden = UseSeedOverride;
+#else
+            if (randomizeSeedEachBuild && Application.isPlaying) seed = UnityEngine.Random.Range(0, int.MaxValue);
 #endif
-            layout = usePacedRandomLayout
-                ? GeneratePacedRandomLayout(randomLength, seed)
-                : GenerateRandomLayout(randomLength, seed);
-            UnityEngine.Debug.Log($"[CorridorBuilder] Random layout generated: {layout}", this);
+
+            int attempts = Mathf.Max(1, maxGenerateAttempts);
+            int usedSeed = seed;
+            string candidate = null;
+
+            for (int attempt = 0; attempt < attempts; attempt++)
+            {
+                int s = seed;
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+                if (!seedOverridden)
+                    s = unchecked(seed + attempt * 1013);
+#else
+                s = unchecked(seed + attempt * 1013);
+#endif
+
+                candidate = usePacedRandomLayout
+                    ? GeneratePacedRandomLayout(randomLength, s)
+                    : GenerateRandomLayout(randomLength, s);
+
+                if (!avoidSelfIntersection || IsSelfIntersectionFree(candidate))
+                {
+                    usedSeed = s;
+                    break;
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(candidate))
+                candidate = usePacedRandomLayout
+                    ? GeneratePacedRandomLayout(randomLength, seed)
+                    : GenerateRandomLayout(randomLength, seed);
+
+            if (avoidSelfIntersection && !IsSelfIntersectionFree(candidate))
+                UnityEngine.Debug.LogWarning($"[CorridorBuilder] Could not find non-intersecting layout in {attempts} attempts. Using last candidate.", this);
+
+            randomSeed = usedSeed;
+            layout = candidate;
+            UnityEngine.Debug.Log($"[CorridorBuilder] Random layout generated (seed {usedSeed}): {layout}", this);
         }
 
         if (string.IsNullOrWhiteSpace(layout))
@@ -270,6 +318,38 @@ public class CorridorBuilder : MonoBehaviour
 
         result[totalLength - 1] = forceDeadEndAtEnd ? 'E' : ((rng.Next(0, 2) == 0) ? 'D' : 'E');
         return new string(result);
+    }
+
+    static bool IsSelfIntersectionFree(string rawLayout)
+    {
+        if (string.IsNullOrWhiteSpace(rawLayout)) return true;
+
+        var cmds = new List<char>(rawLayout.Length);
+        foreach (var raw in rawLayout)
+        {
+            char c = char.ToUpperInvariant(raw);
+            if (c == ' ' || c == ',' || c == '\n' || c == '\r' || c == '\t') continue;
+            cmds.Add(c);
+        }
+
+        if (cmds.Count <= 1) return true;
+
+        var occupied = new HashSet<Vector2Int>();
+        var pos = Vector2Int.zero;
+        var dir = Vector2Int.up;
+        occupied.Add(pos);
+
+        for (int i = 0; i < cmds.Count - 1; i++)
+        {
+            char c = cmds[i];
+            if (c == 'L') dir = new Vector2Int(-dir.y, dir.x);
+            else if (c == 'R') dir = new Vector2Int(dir.y, -dir.x);
+
+            pos += dir;
+            if (!occupied.Add(pos)) return false;
+        }
+
+        return true;
     }
 
     /// <summary> νϽȭϰ socketIn/out   ġ</summary>

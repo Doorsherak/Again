@@ -17,10 +17,12 @@ public class ExperimentConfig : ScriptableObject
     [Header("Spawns")]
     public bool spawnSamples = true;
     public bool spawnExit = true;
+    public bool requireAnalysisStep = true;
+    public bool spawnAnalyzer = true;
     [Min(0f)] public float pickupHeight = 0.9f;
+    [Min(0.05f)] public float analyzerSecondsPerSample = 1.1f;
 
     [Header("Audio")]
     public AudioClip samplePickupClip;
     public Vector2 samplePickupVolumeRange = new Vector2(0.7f, 0.9f);
 }
-

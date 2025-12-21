@@ -45,6 +45,8 @@ public class PauseManager : MonoBehaviour
     [SerializeField] string quitButtonName = "Btn_Pause_MainMenu";
     [SerializeField] KeyCode legacyBackupKey = KeyCode.P;  // ESC 보조키
     [SerializeField] bool logVerbose = true;
+    [SerializeField] bool debugRaycastOnClick = true;
+    [SerializeField, Range(1, 20)] int debugRaycastMaxResults = 8;
 
     // ---------- Cursor & UI Safety ----------
     [Header("Cursor Policy")]
@@ -55,10 +57,16 @@ public class PauseManager : MonoBehaviour
 
     [Header("Input/UI Safety")]
     [SerializeField] bool preferLegacyStandaloneModule = true; // 빠른 복구용
-    [SerializeField] int overlaySortingOrder = 500;            // Pause Canvas Sorting
+    [SerializeField] int overlaySortingOrder = 1200;           // Pause Canvas Sorting
+#if ENABLE_INPUT_SYSTEM
+    [SerializeField] bool forceDynamicInputUpdateWhilePaused = true;
+    UnityEngine.InputSystem.InputSettings.UpdateMode _savedInputUpdateMode;
+    bool _hasSavedInputUpdateMode;
+#endif
 
     public bool IsPaused { get; private set; }
     float baseFixedDelta; GameObject lastSelected; Coroutine fadeCo;
+    bool pauseInputHeld;
 
     void Awake()
     {
@@ -84,6 +92,7 @@ public class PauseManager : MonoBehaviour
         if (autoFindReferences) TryAutoWire("Awake");
         if (autoBuildFallbackUI && pauseRoot == null && IsGameplayScene()) BuildFallbackUI();
         if (autoHookButtons) HookButtons();
+        EnsurePauseCanvasPriority();
 
         if (pauseRoot) pauseRoot.SetActive(false);
         if (fadeGroup) { fadeGroup.alpha = 0; fadeGroup.interactable = false; fadeGroup.blocksRaycasts = false; }
@@ -106,6 +115,7 @@ public class PauseManager : MonoBehaviour
         Time.timeScale = 1f;
         Time.fixedDeltaTime = baseFixedDelta;
         AudioListener.pause = false;
+        ApplyInputSystemUpdateModeForPause(paused: false);
     }
 
     void OnSceneLoaded(Scene s, LoadSceneMode m)
@@ -114,6 +124,7 @@ public class PauseManager : MonoBehaviour
         if (autoFindReferences) TryAutoWire("sceneLoaded");
         if (autoBuildFallbackUI && pauseRoot == null && !IsMenuSceneName(s.name)) BuildFallbackUI();
         if (autoHookButtons) HookButtons();
+        EnsurePauseCanvasPriority();
         if (logVerbose) Dump("[sceneLoaded]");
         ApplyCursorPolicy();
     }
@@ -126,18 +137,40 @@ public class PauseManager : MonoBehaviour
             if (IsPaused) Resume();
             return;
         }
-        if (IsPausePressed()) TogglePause();
+
+        if (IsPausePressed())
+        {
+            if (logVerbose) Debug.Log("[Pause] Toggle key pressed");
+            TogglePause();
+        }
+
+        if (IsPaused && debugRaycastOnClick && TryGetPointerDownThisFrame(out var reason, out var pos))
+            DebugRaycastAtPosition(reason, pos);
     }
 
     bool IsPausePressed()
     {
+        bool held = IsPauseInputHeld();
+        if (held)
+        {
+            if (pauseInputHeld) return false; // prevent double-toggle while key is held
+            pauseInputHeld = true;
+            return true;
+        }
+
+        pauseInputHeld = false;
+        return false;
+    }
+
+    bool IsPauseInputHeld()
+    {
 #if ENABLE_INPUT_SYSTEM
         var kb = Keyboard.current; var pad = Gamepad.current;
-        if (kb != null && kb.escapeKey.wasPressedThisFrame) return true;
-        if (pad != null && (pad.startButton.wasPressedThisFrame || pad.selectButton.wasPressedThisFrame)) return true;
+        if (kb != null && kb.escapeKey.isPressed) return true;
+        if (pad != null && (pad.startButton.isPressed || pad.selectButton.isPressed)) return true;
 #endif
-        if (Input.GetKeyDown(KeyCode.Escape)) return true;
-        if (Input.GetKeyDown(legacyBackupKey)) return true;
+        if (Input.GetKey(KeyCode.Escape)) return true;
+        if (Input.GetKey(legacyBackupKey)) return true;
         return false;
     }
 
@@ -147,9 +180,15 @@ public class PauseManager : MonoBehaviour
     {
         if (IsPaused) return;
         IsPaused = true;
-        Time.timeScale = 0f; Time.fixedDeltaTime = baseFixedDelta * 0f; AudioListener.pause = true;
+        ApplyInputSystemUpdateModeForPause(paused: true);
+        if (createEventSystemIfMissing) StartCoroutine(EnsureEventSystemDeferred());
+        ConfigureEventSystemModules(EventSystem.current);
+        Time.timeScale = 0f; AudioListener.pause = true;
 
         if (!pauseRoot && autoBuildFallbackUI && IsGameplayScene()) BuildFallbackUI();
+        if (autoHookButtons) HookButtons();
+        UnblockGlobalUIForPause();
+        EnsurePauseCanvasPriority();
         if (pauseRoot)
         {
             pauseRoot.SetActive(true);
@@ -163,13 +202,15 @@ public class PauseManager : MonoBehaviour
             if (firstSelected) EventSystem.current.SetSelectedGameObject(firstSelected);
         }
         ApplyCursorPolicy();
+        if (logVerbose) Dump("[Pause]");
     }
 
     public void Resume()
     {
         if (!IsPaused) { if (pauseRoot) pauseRoot.SetActive(false); ApplyCursorPolicy(); return; }
         IsPaused = false;
-        Time.timeScale = 1f; Time.fixedDeltaTime = baseFixedDelta; AudioListener.pause = false;
+        Time.timeScale = 1f; AudioListener.pause = false;
+        ApplyInputSystemUpdateModeForPause(paused: false);
 
         if (pauseRoot)
         {
@@ -178,6 +219,7 @@ public class PauseManager : MonoBehaviour
         }
         if (EventSystem.current && lastSelected) EventSystem.current.SetSelectedGameObject(lastSelected);
         ApplyCursorPolicy();
+        if (logVerbose) Dump("[Resume]");
     }
 
     void StartFade(float target, bool enableAtStart)
@@ -210,7 +252,18 @@ public class PauseManager : MonoBehaviour
     }
 
     bool IsGameplayScene()
-        => !IsMenuSceneName(SceneManager.GetActiveScene().name);
+    {
+        int count = SceneManager.sceneCount;
+        if (count <= 0) return true;
+
+        for (int i = 0; i < count; i++)
+        {
+            var s = SceneManager.GetSceneAt(i);
+            if (!s.IsValid() || !s.isLoaded) continue;
+            if (!IsMenuSceneName(s.name)) return true;
+        }
+        return false;
+    }
 
     public void ApplyCursorPolicy()
     {
@@ -298,25 +351,64 @@ public class PauseManager : MonoBehaviour
     {
         if (!pauseRoot) return;
         var buttons = pauseRoot.GetComponentsInChildren<Button>(true);
+        int hooked = 0;
         foreach (var b in buttons)
         {
             if (!b || string.IsNullOrEmpty(b.name)) continue;
             if (b.name == resumeButtonName)
             {
                 b.onClick.RemoveListener(BtnResume); b.onClick.AddListener(BtnResume);
+                hooked++;
             }
             else if (b.name == restartButtonName)
             {
                 b.onClick.RemoveListener(BtnRestart); b.onClick.AddListener(BtnRestart);
+                hooked++;
             }
             else if (b.name == quitButtonName)
             {
                 b.onClick.RemoveListener(BtnQuitToTitle); b.onClick.AddListener(BtnQuitToTitle);
+                hooked++;
             }
         }
+        if (logVerbose && hooked > 0) Debug.Log($"[Pause] HookButtons → {hooked} bound");
     }
 
     static bool _creatingES = false; // 동시 생성 가드
+
+    void ConfigureEventSystemModules(EventSystem es)
+    {
+        if (es == null) return;
+
+#if ENABLE_LEGACY_INPUT_MANAGER
+        if (preferLegacyStandaloneModule)
+        {
+            var legacy = es.GetComponent<StandaloneInputModule>();
+            if (legacy == null) legacy = es.gameObject.AddComponent<StandaloneInputModule>();
+            if (!legacy.enabled) legacy.enabled = true;
+
+#if ENABLE_INPUT_SYSTEM
+            var ui = es.GetComponent<InputSystemUIInputModule>();
+            if (ui != null) ui.enabled = false; // legacy 모듈로만 입력 처리
+#endif
+            es.UpdateModules();
+            return;
+        }
+#endif
+
+#if ENABLE_INPUT_SYSTEM
+        var inputSystem = es.GetComponent<InputSystemUIInputModule>();
+        if (inputSystem == null) inputSystem = es.gameObject.AddComponent<InputSystemUIInputModule>();
+        if (!inputSystem.enabled) inputSystem.enabled = true;
+        if (inputSystem.actionsAsset == null)
+            inputSystem.AssignDefaultActions();
+        inputSystem.cursorLockBehavior = InputSystemUIInputModule.CursorLockBehavior.ScreenCenter;
+#endif
+
+        var standalone = es.GetComponent<StandaloneInputModule>();
+        if (standalone != null) standalone.enabled = false;
+        es.UpdateModules();
+    }
 
     System.Collections.IEnumerator EnsureEventSystemDeferred()
     {
@@ -334,16 +426,57 @@ public class PauseManager : MonoBehaviour
             var go = new GameObject("EventSystem");
             go.AddComponent<EventSystem>();
 #if ENABLE_INPUT_SYSTEM
+#if ENABLE_LEGACY_INPUT_MANAGER
             if (preferLegacyStandaloneModule) go.AddComponent<StandaloneInputModule>();
             else go.AddComponent<InputSystemUIInputModule>();
+#else
+            go.AddComponent<InputSystemUIInputModule>();
+#endif
 #else
             go.AddComponent<StandaloneInputModule>();
 #endif
             if (logVerbose) Debug.Log("[Pause] EventSystem 자동 생성(지연)");
+            _creatingES = false;
+            yield break;
         }
-        else
+
+        var activeScene = SceneManager.GetActiveScene();
+        EventSystem chosen = null;
+        int bestScore = int.MinValue;
+        for (int i = 0; i < all.Length; i++)
         {
-            for (int i = 1; i < all.Length; i++) Destroy(all[i].gameObject); // 1개만 유지
+            var es = all[i];
+            if (!es) continue;
+
+            int score = 0;
+            if (es.isActiveAndEnabled) score += 100;
+            if (es.gameObject.activeInHierarchy) score += 50;
+            if (es.gameObject.scene == activeScene) score += 25;
+#if ENABLE_INPUT_SYSTEM
+            if (es.GetComponent<InputSystemUIInputModule>() != null) score += 10;
+#endif
+            if (es.GetComponent<StandaloneInputModule>() != null) score += 5;
+
+            if (score > bestScore) { bestScore = score; chosen = es; }
+        }
+        if (chosen == null) chosen = all[0];
+
+        if (chosen && !chosen.gameObject.activeSelf) chosen.gameObject.SetActive(true);
+        if (chosen && !chosen.enabled) chosen.enabled = true;
+        ConfigureEventSystemModules(chosen);
+        if (EventSystem.current != null && EventSystem.current != chosen) EventSystem.current = chosen;
+
+        for (int i = 0; i < all.Length; i++)
+        {
+            var es = all[i];
+            if (!es || es == chosen) continue;
+            es.enabled = false;
+#if ENABLE_INPUT_SYSTEM
+            var u = es.GetComponent<InputSystemUIInputModule>();
+            if (u) u.enabled = false;
+#endif
+            var s = es.GetComponent<StandaloneInputModule>();
+            if (s) s.enabled = false;
         }
         _creatingES = false;
     }
@@ -352,7 +485,29 @@ public class PauseManager : MonoBehaviour
     {
         var active = SceneManager.GetActiveScene().path;
         var ui = pauseRoot ? pauseRoot.scene.path : "NULL";
-        Debug.Log($"[Pause]{tag} Active='{active}', UI='{ui}', IsPaused={IsPaused}");
+        string cursor = $"{Cursor.lockState}/{(Cursor.visible ? "Visible" : "Hidden")}";
+        var mousePos = Input.mousePosition;
+        string esPath = "NULL";
+        string esModule = "NULL";
+        var es = EventSystem.current;
+        if (es != null)
+        {
+            esPath = es.gameObject.scene.path;
+            esModule = "EventSystem";
+#if ENABLE_INPUT_SYSTEM
+            if (es.GetComponent<InputSystemUIInputModule>() != null) esModule += "+InputSystemUIInputModule";
+#endif
+            if (es.GetComponent<StandaloneInputModule>() != null) esModule += "+StandaloneInputModule";
+        }
+
+#if ENABLE_INPUT_SYSTEM
+        string update = InputSystem.settings != null ? InputSystem.settings.updateMode.ToString() : "NULL";
+        string currentModule = es != null && es.currentInputModule != null ? es.currentInputModule.GetType().Name : "NULL";
+        Debug.Log($"[Pause]{tag} Active='{active}', UI='{ui}', IsPaused={IsPaused}, ES='{esPath}', Module='{esModule}', Current='{currentModule}', InputUpdate='{update}', Cursor='{cursor}', Mouse='{mousePos}'");
+#else
+        string currentModule = es != null && es.currentInputModule != null ? es.currentInputModule.GetType().Name : "NULL";
+        Debug.Log($"[Pause]{tag} Active='{active}', UI='{ui}', IsPaused={IsPaused}, ES='{esPath}', Module='{esModule}', Current='{currentModule}', Cursor='{cursor}', Mouse='{mousePos}'");
+#endif
     }
 
     [ContextMenu("Force Pause")] void ForcePauseCtx() => Pause();
@@ -360,8 +515,17 @@ public class PauseManager : MonoBehaviour
     void OnApplicationFocus(bool f) { if (f) ApplyCursorPolicy(); }
 
     // ---------- Buttons ----------
-    public void BtnResume() => Resume();
-    public void BtnRestart() => SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    public void BtnResume()
+    {
+        if (logVerbose) Debug.Log("[Pause] BtnResume");
+        Resume();
+    }
+
+    public void BtnRestart()
+    {
+        if (logVerbose) Debug.Log("[Pause] BtnRestart");
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
 
     string GetFirstMenuScene()
     {
@@ -372,9 +536,47 @@ public class PauseManager : MonoBehaviour
     }
     public void BtnQuitToTitle()
     {
+        if (logVerbose) Debug.Log("[Pause] BtnQuitToTitle");
         var menu = GetFirstMenuScene();
-        if (!string.IsNullOrEmpty(menu)) SceneManager.LoadScene(menu);
+        if (string.IsNullOrEmpty(menu)) return;
+
+        // Prefer unified transition path (handles name collisions via build path resolution + fade).
+        if (SceneTransitioner.Instance != null)
+        {
+            StartCoroutine(SceneTransitioner.LoadScene(menu));
+            return;
+        }
+
+        SceneManager.LoadScene(menu);
     }
+
+#if ENABLE_INPUT_SYSTEM
+    void ApplyInputSystemUpdateModeForPause(bool paused)
+    {
+        if (!forceDynamicInputUpdateWhilePaused) return;
+        if (InputSystem.settings == null) return;
+
+        if (paused)
+        {
+            if (!_hasSavedInputUpdateMode)
+            {
+                _savedInputUpdateMode = InputSystem.settings.updateMode;
+                _hasSavedInputUpdateMode = true;
+            }
+
+            if (InputSystem.settings.updateMode != UnityEngine.InputSystem.InputSettings.UpdateMode.ProcessEventsInDynamicUpdate)
+                InputSystem.settings.updateMode = UnityEngine.InputSystem.InputSettings.UpdateMode.ProcessEventsInDynamicUpdate;
+        }
+        else
+        {
+            if (!_hasSavedInputUpdateMode) return;
+            InputSystem.settings.updateMode = _savedInputUpdateMode;
+            _hasSavedInputUpdateMode = false;
+        }
+    }
+#else
+    void ApplyInputSystemUpdateModeForPause(bool paused) { }
+#endif
 
     // ---------- Fallback UI ----------
     void BuildFallbackUI()
@@ -383,6 +585,7 @@ public class PauseManager : MonoBehaviour
         var canvasGO = new GameObject("Canvas_UI_Runtime", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
         var canvas = canvasGO.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.overrideSorting = true;
         canvas.sortingOrder = overlaySortingOrder;
         var scaler = canvasGO.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
@@ -430,6 +633,119 @@ public class PauseManager : MonoBehaviour
         CreateButton(panel.transform, "Btn_Pause_MainMenu", "메인 메뉴", BtnQuitToTitle);
 
         if (logVerbose) Debug.Log("[Pause] Fallback UI 생성 완료");
+    }
+
+    void EnsurePauseCanvasPriority()
+    {
+        if (pauseRoot == null) return;
+
+        var canvas = pauseRoot.GetComponentInParent<Canvas>(true);
+        if (canvas == null) return;
+
+        if (!canvas.overrideSorting) canvas.overrideSorting = true;
+        if (canvas.sortingOrder < overlaySortingOrder) canvas.sortingOrder = overlaySortingOrder;
+
+        var t = canvas.transform;
+        if (t != null && t.localScale.sqrMagnitude < 0.0001f)
+            t.localScale = Vector3.one;
+
+        // Ensure raycaster exists so the pause UI can be clicked.
+        if (canvas.GetComponent<GraphicRaycaster>() == null)
+            canvas.gameObject.AddComponent<GraphicRaycaster>();
+    }
+
+    void UnblockGlobalUIForPause()
+    {
+        var fader = ScreenFader.Instance;
+        if (fader == null)
+            fader = Object.FindFirstObjectByType<ScreenFader>(FindObjectsInactive.Include);
+        if (fader != null) fader.SetAlpha(0f);
+
+        var blockerCanvas = FindInLoadedScenesByName("TransitionBlockerCanvas");
+        if (blockerCanvas == null)
+        {
+#if UNITY_2023_1_OR_NEWER
+            var canvases = Object.FindObjectsByType<Canvas>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+#else
+            var canvases = GameObject.FindObjectsOfType<Canvas>(true);
+#endif
+            for (int i = 0; i < canvases.Length; i++)
+            {
+                var c = canvases[i];
+                if (!c) continue;
+                if (!c.overrideSorting) continue;
+                if (c.sortingOrder != short.MaxValue - 1) continue;
+                if (c.transform.Find("Blocker") == null) continue;
+                blockerCanvas = c.gameObject;
+                break;
+            }
+        }
+        if (blockerCanvas == null) return;
+
+        var cg = blockerCanvas.GetComponent<CanvasGroup>();
+        if (cg != null)
+        {
+            cg.blocksRaycasts = false;
+            cg.interactable = false;
+        }
+
+    }
+
+    bool TryGetPointerDownThisFrame(out string reason, out Vector2 pos)
+    {
+#if ENABLE_INPUT_SYSTEM
+        var mouse = UnityEngine.InputSystem.Mouse.current;
+        if (mouse != null && mouse.leftButton.wasPressedThisFrame)
+        {
+            reason = "LMB(InputSystem)";
+            pos = mouse.position.ReadValue();
+            return true;
+        }
+#endif
+        if (Input.GetMouseButtonDown(0))
+        {
+            reason = "LMB(Legacy)";
+            pos = (Vector2)Input.mousePosition;
+            return true;
+        }
+
+        reason = null;
+        pos = default;
+        return false;
+    }
+
+    void DebugRaycastAtPosition(string reason, Vector2 pos)
+    {
+        if (!logVerbose) return;
+
+        var es = EventSystem.current;
+        if (es == null)
+        {
+            Debug.LogWarning($"[Pause] Raycast({reason}) ES=NULL");
+            return;
+        }
+
+        var ped = new PointerEventData(es) { position = pos };
+        var results = new System.Collections.Generic.List<RaycastResult>(16);
+        es.RaycastAll(ped, results);
+
+        if (results.Count == 0)
+        {
+            Debug.Log($"[Pause] Raycast({reason}) hits=0 pos={pos}");
+            return;
+        }
+
+        int n = Mathf.Min(debugRaycastMaxResults, results.Count);
+        var msg = $"[Pause] Raycast({reason}) hits={results.Count} pos={pos}";
+        for (int i = 0; i < n; i++)
+        {
+            var r = results[i];
+            if (r.gameObject == null) continue;
+            var canvas = r.gameObject.GetComponentInParent<Canvas>();
+            int canvasOrder = canvas != null ? canvas.sortingOrder : int.MinValue;
+            msg += $"\n  {i}: '{r.gameObject.name}' scene='{r.gameObject.scene.path}' sort={r.sortingOrder}/{canvasOrder} depth={r.depth} module='{r.module?.GetType().Name}'";
+        }
+        Debug.Log(msg);
     }
 
     GameObject CreateButton(Transform parent, string name, string label, UnityEngine.Events.UnityAction onClick)

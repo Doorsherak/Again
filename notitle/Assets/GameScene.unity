@@ -434,6 +434,7 @@ MonoBehaviour:
   maxHorrorIntensity: 1
   intensityChangeSpeed: 1
   enableCameraShake: 1
+  showDebugHud: 0
 --- !u!114 &68494955 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 114963311885979670, guid: 11aaea5348574644a9eb4f4504fcce3f, type: 3}
@@ -839,6 +840,9 @@ MonoBehaviour:
   - {fileID: 1482330985}
   - {fileID: 850126583}
   postProcessVolume: {fileID: 0}
+  throttlePostProcessing: 1
+  postProcessingUpdateInterval: 0.1
+  postProcessingUpdateEpsilon: 0.005
   horrorLevel: 0.5
   meanBrownoutInterval: 60
   brownoutHold: 3
@@ -2053,6 +2057,18 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4642412945063603146, guid: f5a8b830f338cab49a295e9c3567dd17, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642412945063603146, guid: f5a8b830f338cab49a295e9c3567dd17, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642412945063603146, guid: f5a8b830f338cab49a295e9c3567dd17, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 7218276101672318261, guid: f5a8b830f338cab49a295e9c3567dd17, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
@@ -2547,6 +2563,10 @@ MonoBehaviour:
     monsterLightOutTime: 0.2
     useMonsterLunge: 1
     lungeDistance: 0.2
+  config: {fileID: 0}
+  loadConfigFromResourcesIfMissing: 0
+  configResourcePath: Configs/JumpscareConfig
+  useConfigOverrides: 1
   monster: {fileID: 543017298}
   fadeCanvasGroup: {fileID: 217680466}
   playerController: {fileID: 68494955}
@@ -2576,20 +2596,30 @@ MonoBehaviour:
   delayBeforeRestart: 0.5
   autoRestart: 1
   showCursorOnEnd: 0
+  autoFitFadeCanvas: 1
+  autoCreateFadeImage: 1
+  fadeColor: {r: 0, g: 0, b: 0, a: 1}
   useCameraShake: 1
   cameraTransform: {fileID: 68494949}
   shakeDuration: 0.3
   shakeIntensity: 0.1
   useRotationShake: 1
   shakeRotationIntensity: 1.5
+  preserveCameraPoseOnDisable: 1
+  reduceShakeWhenCrouched: 0
+  crouchEyeHeightThreshold: 1.25
+  crouchShakeMultiplier: 0.35
   autoResolveCameraTransform: 1
   preferTargetCameraForAutoResolve: 1
   allowPlayerControllerCameraSearch: 1
   placeMonsterAtCamera: 1
-  monsterCameraLocalPos: {x: 3.5527137e-15, y: -1.9, z: 0.30000022}
+  monsterCameraLocalPos: {x: 0, y: -0.15, z: 1.15}
   monsterCameraLocalEuler: {x: 2, y: 180, z: 0}
   monsterPositionJitter: {x: 0.03, y: 0.02, z: 0.03}
   monsterRotationJitter: {x: 0, y: 4, z: 0}
+  keepMonsterUpright: 1
+  alignMonsterFocusToCamera: 1
+  monsterFocusHeight01: 0.78
   hidePlayerDuringJumpscare: 1
   playerVisualRoot: {fileID: 68494950}
   playerRenderers: []
@@ -2647,8 +2677,12 @@ MonoBehaviour:
   monsterLightOutTime: 0.2
   overrideMonsterLightColor: 0
   monsterLightColor: {r: 0.75, g: 0.85, b: 1, a: 1}
+  restrictLightToMonsterLayer: 0
+  monsterRenderingLayer: 1
+  applyLayerToMonsterRenderers: 1
+  restoreMonsterRenderersLayerAfter: 1
   useMonsterLunge: 1
-  lungeDistance: 0.25
+  lungeDistance: 0.5
   lungeDuration: 0.08
   autoTriggerOnStart: 0
   autoTriggerDelay: 0
@@ -2740,6 +2774,13 @@ MonoBehaviour:
   useRandomLayout: 1
   randomSeed: 42
   randomLength: 15
+  randomizeSeedEachBuild: 1
+  avoidSelfIntersection: 1
+  maxGenerateAttempts: 30
+  usePacedRandomLayout: 1
+  pacedDoorBeats: 2
+  maxConsecutiveTurns: 2
+  forceDeadEndAtEnd: 1
   clearBeforeBuild: 1
   buildOnAwake: 1
   joinBias: 0
@@ -3058,6 +3099,7 @@ MonoBehaviour:
   legacyBackupKey: 112
   logVerbose: 1
   manageCursor: 1
+  preferSceneTransitionerCursorPolicy: 1
   lockCursorOnlyInGameplay: 1
   menuSceneNames:
   - StartScreen
@@ -3860,6 +3902,7 @@ GameObject:
   - component: {fileID: 1289634891}
   - component: {fileID: 1289634890}
   - component: {fileID: 1289634889}
+  - component: {fileID: 1289634892}
   m_Layer: 0
   m_Name: EventSystem
   m_TagString: Untagged
@@ -3874,7 +3917,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1289634888}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 01614664b831546d2ae94a42149d80ac, type: 3}
   m_Name: 
@@ -3898,6 +3941,26 @@ MonoBehaviour:
   m_PointerBehavior: 0
   m_CursorLockBehavior: 0
   m_ScrollDeltaPerTick: 6
+--- !u!114 &1289634892
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1289634888}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f231c4fb786f3946a6b90b886c48677, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.EventSystems.StandaloneInputModule
+  m_SendPointerHoverToParent: 1
+  m_HorizontalAxis: Horizontal
+  m_VerticalAxis: Vertical
+  m_SubmitButton: Submit
+  m_CancelButton: Cancel
+  m_InputActionsPerSecond: 10
+  m_RepeatDelay: 0.5
+  m_ForceModuleActive: 0
 --- !u!114 &1289634890
 MonoBehaviour:
   m_ObjectHideFlags: 0

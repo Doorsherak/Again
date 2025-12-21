@@ -98,6 +98,12 @@ public class JumpscareTrigger : MonoBehaviour
     public bool useRotationShake = true;
     public float shakeRotationIntensity = 1.5f;
 
+    [Header("Camera Stability")]
+    public bool preserveCameraPoseOnDisable = true;
+    public bool reduceShakeWhenCrouched = true;
+    [Min(0f)] public float crouchEyeHeightThreshold = 1.25f;
+    [Range(0f, 1f)] public float crouchShakeMultiplier = 0.35f;
+
     [Header("카메라 자동 할당")]
     public bool autoResolveCameraTransform = true;
     public bool preferTargetCameraForAutoResolve = true;
@@ -109,6 +115,16 @@ public class JumpscareTrigger : MonoBehaviour
     public Vector3 monsterCameraLocalEuler = new Vector3(0f, 180f, 0f);
     public Vector3 monsterPositionJitter = new Vector3(0.03f, 0.02f, 0.03f);
     public Vector3 monsterRotationJitter = new Vector3(0f, 4f, 0f);
+
+    [Header("Monster Framing")]
+    public bool keepMonsterUpright = true;                // 카메라 피치/롤을 무시하고 몬스터를 수직으로 유지
+    public bool alignMonsterFocusToCamera = true;         // 렌더러 bounds 기준으로 얼굴쪽을 화면 중앙에 맞춤
+    [Range(0f, 1f)] public float monsterFocusHeight01 = 0.78f; // 0=바닥, 1=머리쪽
+
+    [Header("Monster Placement Safety")]
+    public bool ensureMonsterClearance = true;            // 카메라 클리핑/관통 방지
+    [Min(0f)] public float monsterMinCameraClearance = 0.25f;
+    [Range(1, 16)] public int monsterClearanceMaxIterations = 8;
 
     [Header("Player Visibility")]
     public bool hidePlayerDuringJumpscare = true;
@@ -473,9 +489,25 @@ public class JumpscareTrigger : MonoBehaviour
 
     IEnumerator JumpscareSequence()
     {
+        ResolveCameraTransformRuntime(forceAssign: true);
+        Vector3 capturedCamPos = Vector3.zero;
+        Quaternion capturedCamRot = Quaternion.identity;
+        bool hasCapturedCamPose = preserveCameraPoseOnDisable && cameraTransform != null;
+        if (hasCapturedCamPose)
+        {
+            capturedCamPos = cameraTransform.position;
+            capturedCamRot = cameraTransform.rotation;
+        }
+
         // 1. 플레이어 조작 막기
         if (playerController != null)
             playerController.enabled = false;
+
+        if (hasCapturedCamPose && cameraTransform != null)
+        {
+            cameraTransform.position = capturedCamPos;
+            cameraTransform.rotation = capturedCamRot;
+        }
 
         // 2. 빌드업 단계 (라이트 깜빡임 + 앰비언스 볼륨 업)
         if (usePreScare)
@@ -516,10 +548,25 @@ public class JumpscareTrigger : MonoBehaviour
                     Random.Range(-monsterRotationJitter.x, monsterRotationJitter.x),
                     Random.Range(-monsterRotationJitter.y, monsterRotationJitter.y),
                     Random.Range(-monsterRotationJitter.z, monsterRotationJitter.z));
-                monster.transform.position = cameraTransform.TransformPoint(monsterCameraLocalPos + jitterPos);
-                monster.transform.rotation = cameraTransform.rotation * Quaternion.Euler(monsterCameraLocalEuler + jitterEuler);
+
+                Quaternion basis = cameraTransform.rotation;
+                if (keepMonsterUpright)
+                {
+                    Vector3 f = cameraTransform.forward;
+                    f.y = 0f;
+                    if (f.sqrMagnitude < 0.0001f) f = Vector3.forward;
+                    else f.Normalize();
+                    basis = Quaternion.LookRotation(f, Vector3.up);
+                }
+
+                monster.transform.rotation = basis * Quaternion.Euler(monsterCameraLocalEuler + jitterEuler);
+                var localPos = monsterCameraLocalPos + jitterPos;
+                monster.transform.position = cameraTransform.position + (basis * localPos);
             }
             monster.SetActive(true);
+
+            if (placeMonsterAtCamera && alignMonsterFocusToCamera && cameraTransform != null)
+                AlignMonsterFocusToCamera(cameraTransform);
         }
 
         StartImpactFlash();
@@ -1115,7 +1162,14 @@ public class JumpscareTrigger : MonoBehaviour
         if (cameraTransform != null)
         {
             float distance = Vector3.Distance(startPos, cameraTransform.position);
-            maxLunge = Mathf.Min(lungeDistance, Mathf.Max(0f, distance - 0.1f));
+            float minGap = 0.1f;
+            if (ensureMonsterClearance)
+            {
+                Camera impactCam = ResolveImpactCamera();
+                float near = impactCam != null ? impactCam.nearClipPlane : 0.05f;
+                minGap = Mathf.Max(minGap, near + monsterMinCameraClearance);
+            }
+            maxLunge = Mathf.Min(lungeDistance, Mathf.Max(0f, distance - minGap));
         }
         if (maxLunge <= 0f) yield break;
 
@@ -1190,17 +1244,21 @@ public class JumpscareTrigger : MonoBehaviour
         Vector3 startPos = cameraTransform.localPosition;
         Quaternion startRot = cameraTransform.localRotation;
 
+        float crouchMul = 1f;
+        if (reduceShakeWhenCrouched && IsLikelyCrouched())
+            crouchMul = Mathf.Clamp01(crouchShakeMultiplier);
+
         while (elapsed < shakeDuration)
         {
             elapsed += Time.deltaTime;
             float t = Mathf.Clamp01(elapsed / Mathf.Max(0.0001f, shakeDuration));
             float damper = 1f - Mathf.SmoothStep(0f, 1f, t);
             float x = Random.Range(-1f, 1f) * shakeIntensity * damper;
-            float y = Random.Range(-1f, 1f) * shakeIntensity * damper;
+            float y = Random.Range(-1f, 1f) * shakeIntensity * damper * crouchMul;
             cameraTransform.localPosition = startPos + new Vector3(x, y, 0f);
             if (useRotationShake)
             {
-                float rx = Random.Range(-1f, 1f) * shakeRotationIntensity * damper;
+                float rx = Random.Range(-1f, 1f) * shakeRotationIntensity * damper * crouchMul;
                 float ry = Random.Range(-1f, 1f) * shakeRotationIntensity * damper;
                 float rz = Random.Range(-1f, 1f) * shakeRotationIntensity * 0.6f * damper;
                 cameraTransform.localRotation = startRot * Quaternion.Euler(rx, ry, rz);
@@ -1210,6 +1268,82 @@ public class JumpscareTrigger : MonoBehaviour
 
         cameraTransform.localPosition = startPos;
         cameraTransform.localRotation = startRot;
+    }
+
+    bool IsLikelyCrouched()
+    {
+        if (cameraTransform == null || playerController == null) return false;
+        float eyeHeight = cameraTransform.position.y - playerController.transform.position.y;
+        return eyeHeight > 0f && eyeHeight < crouchEyeHeightThreshold;
+    }
+
+    void AlignMonsterFocusToCamera(Transform cam)
+    {
+        if (monster == null || cam == null) return;
+        if (!TryGetMonsterBounds(monster, out var b)) return;
+
+        // Focus point: somewhere near the top of the bounds (face/upper torso).
+        float t = Mathf.Clamp01(monsterFocusHeight01);
+        float focusY = Mathf.Lerp(b.min.y, b.max.y, t);
+        Vector3 surface = b.ClosestPoint(cam.position);
+        Vector3 focusPoint = new Vector3(surface.x, focusY, surface.z);
+
+        // Desired focus: camera center at the configured distance (ignore local Y to avoid crouch torso-framing).
+        Quaternion basis = cam.rotation;
+        if (keepMonsterUpright)
+        {
+            Vector3 forward = cam.forward;
+            forward.y = 0f;
+            if (forward.sqrMagnitude < 0.0001f) forward = cam.forward;
+            else forward.Normalize();
+            basis = Quaternion.LookRotation(forward, Vector3.up);
+        }
+
+        Vector3 desired = cam.position + basis * new Vector3(monsterCameraLocalPos.x, 0f, monsterCameraLocalPos.z);
+        monster.transform.position += (desired - focusPoint);
+        EnsureMonsterClearanceFromCamera(cam, basis);
+    }
+
+    void EnsureMonsterClearanceFromCamera(Transform cam, Quaternion basis)
+    {
+        if (!ensureMonsterClearance || monster == null || cam == null) return;
+
+        Camera impactCam = ResolveImpactCamera();
+        float near = impactCam != null ? impactCam.nearClipPlane : 0.05f;
+        float minDist = Mathf.Max(0.01f, near + monsterMinCameraClearance);
+        int iters = Mathf.Clamp(monsterClearanceMaxIterations, 1, 16);
+
+        for (int i = 0; i < iters; i++)
+        {
+            if (!TryGetMonsterBounds(monster, out var b)) break;
+
+            Vector3 closest = b.ClosestPoint(cam.position);
+            float dist = Vector3.Distance(cam.position, closest);
+            if (dist >= minDist) break;
+
+            float push = (minDist - dist) + 0.01f;
+            monster.transform.position += basis * (Vector3.forward * push);
+        }
+    }
+
+    static bool TryGetMonsterBounds(GameObject root, out Bounds bounds)
+    {
+        bounds = default;
+        if (root == null) return false;
+
+        var renderers = root.GetComponentsInChildren<Renderer>(true);
+        if (renderers == null || renderers.Length == 0) return false;
+
+        bool any = false;
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            var r = renderers[i];
+            if (r == null) continue;
+            if (!any) { bounds = r.bounds; any = true; }
+            else bounds.Encapsulate(r.bounds);
+        }
+
+        return any;
     }
 
     void OnDrawGizmosSelected()
@@ -1260,7 +1394,14 @@ public class JumpscareTrigger : MonoBehaviour
             if (toCamera.sqrMagnitude > 0.0001f)
             {
                 float distance = toCamera.magnitude;
-                float maxLunge = Mathf.Min(lungeDistance, Mathf.Max(0f, distance - 0.1f));
+                float minGap = 0.1f;
+                if (ensureMonsterClearance)
+                {
+                    Camera impactCam = ResolveImpactCamera();
+                    float near = impactCam != null ? impactCam.nearClipPlane : 0.05f;
+                    minGap = Mathf.Max(minGap, near + monsterMinCameraClearance);
+                }
+                float maxLunge = Mathf.Min(lungeDistance, Mathf.Max(0f, distance - minGap));
                 if (maxLunge > 0f)
                     basePos += toCamera.normalized * maxLunge;
             }

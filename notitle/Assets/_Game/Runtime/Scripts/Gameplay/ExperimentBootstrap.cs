@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -38,7 +39,10 @@ public class ExperimentBootstrap : MonoBehaviour
     [Header("Spawns")]
     [SerializeField] bool spawnSamples = true;
     [SerializeField] bool spawnExit = true;
+    [SerializeField] bool requireAnalysisStep = true;
+    [SerializeField] bool spawnAnalyzer = true;
     [SerializeField] float pickupHeight = 0.9f;
+    [SerializeField] float analyzerSecondsPerSample = 1.1f;
 
     [Header("Audio")]
     [SerializeField] AudioSource uiSfxSource;
@@ -58,8 +62,11 @@ public class ExperimentBootstrap : MonoBehaviour
     JumpscareTrigger _jumpscare;
     readonly List<ExperimentSamplePickup> _activeSamples = new List<ExperimentSamplePickup>(16);
     ExperimentExitTrigger _exit;
+    ExperimentAnalyzerStation _analyzer;
 
     int _collected;
+    int _rawSamples;
+    int _submittedSamples;
     bool _isWatching;
     RunState _state;
     Coroutine _setupCo;
@@ -141,7 +148,10 @@ public class ExperimentBootstrap : MonoBehaviour
 
         spawnSamples = cfg.spawnSamples;
         spawnExit = cfg.spawnExit;
+        requireAnalysisStep = cfg.requireAnalysisStep;
+        spawnAnalyzer = cfg.spawnAnalyzer;
         pickupHeight = cfg.pickupHeight;
+        analyzerSecondsPerSample = cfg.analyzerSecondsPerSample;
 
         if (cfg.samplePickupClip != null) samplePickupClip = cfg.samplePickupClip;
         samplePickupVolumeRange = cfg.samplePickupVolumeRange;
@@ -153,12 +163,15 @@ public class ExperimentBootstrap : MonoBehaviour
             ? RunState.InMenu
             : RunState.Playing;
         _collected = 0;
+        _rawSamples = 0;
+        _submittedSamples = 0;
         _isWatching = false;
         _speedHistory.Clear();
         _speedTimer = 0f;
         _avgSpeed = 0f;
         _activeSamples.Clear();
         _exit = null;
+        _analyzer = null;
 
         if (_setupCo != null) StopCoroutine(_setupCo);
         if (_observationCo != null) StopCoroutine(_observationCo);
@@ -171,8 +184,12 @@ public class ExperimentBootstrap : MonoBehaviour
 
         if (_hud)
         {
-            _hud.SetObjective($"\uC0D8\uD50C \uAC1C\uC218: 0 / {requiredSamples}");
-            _hud.ShowMessage("\uC2E4\uD5D8 \uC2DC\uC791. \uC0D8\uD50C\uC744 \uC218\uC9D1\uD558\uC138\uC694.", 2.2f);
+            UpdateObjective();
+            _hud.ShowMessage(
+                requireAnalysisStep
+                    ? "\uC2E4\uD5D8 \uC2DC\uC791. \uC0D8\uD50C\uC744 \uC218\uC9D1\uD558\uACE0 \uBD84\uC11D\uB300\uC5D0 \uC81C\uCD9C\uD55C \uB4A4 \uD0C8\uCD9C\uD558\uC138\uC694."
+                    : "\uC2E4\uD5D8 \uC2DC\uC791. \uC0D8\uD50C\uC744 \uC218\uC9D1\uD558\uC138\uC694.",
+                2.4f);
         }
 
         if (_corridor)
@@ -225,6 +242,7 @@ public class ExperimentBootstrap : MonoBehaviour
         yield return null;
 
         if (spawnSamples) SpawnSamplePickups();
+        if (requireAnalysisStep && spawnAnalyzer) SpawnAnalyzerStation();
         if (spawnExit) SpawnExitTrigger();
     }
 
@@ -296,6 +314,27 @@ public class ExperimentBootstrap : MonoBehaviour
         _exit = exit;
     }
 
+    void SpawnAnalyzerStation()
+    {
+        var modules = GetCorridorModulesByIndex();
+        if (modules.Count < 3) return;
+
+        int idx = Mathf.Clamp(modules.Count / 2, 1, modules.Count - 2);
+        var t = modules[idx];
+
+        var go = new GameObject("ExperimentAnalyzer");
+        go.transform.position = t.position + Vector3.up * 1.0f;
+
+        var col = go.AddComponent<BoxCollider>();
+        col.isTrigger = true;
+        col.size = new Vector3(2.8f, 2.4f, 2.8f);
+
+        var station = go.AddComponent<ExperimentAnalyzerStation>();
+        station.bootstrap = this;
+        station.secondsPerSample = analyzerSecondsPerSample;
+        _analyzer = station;
+    }
+
     List<Transform> GetCorridorModulesByIndex()
     {
         var list = new List<(int index, Transform tr)>();
@@ -321,6 +360,26 @@ public class ExperimentBootstrap : MonoBehaviour
         var slice = name.Substring(0, 3);
         if (int.TryParse(slice, NumberStyles.Integer, CultureInfo.InvariantCulture, out int idx)) return idx;
         return int.MaxValue;
+    }
+
+    string ResolveStartSceneIdentifier()
+    {
+        if (string.IsNullOrEmpty(startSceneName)) return null;
+
+        if (startSceneName.Contains("/") || startSceneName.Contains("\\") || startSceneName.EndsWith(".unity", System.StringComparison.OrdinalIgnoreCase))
+            return startSceneName;
+
+        for (int i = 0; i < SceneManager.sceneCountInBuildSettings; i++)
+        {
+            var path = SceneUtility.GetScenePathByBuildIndex(i);
+            if (string.IsNullOrEmpty(path)) continue;
+
+            var name = Path.GetFileNameWithoutExtension(path);
+            if (string.Equals(name, startSceneName, System.StringComparison.OrdinalIgnoreCase))
+                return path;
+        }
+
+        return null;
     }
 
     IEnumerator CoObservationLoop()
@@ -401,10 +460,23 @@ public class ExperimentBootstrap : MonoBehaviour
     {
         bool wasLocked = !CanExit();
         _collected++;
+
         if (pickup != null) _activeSamples.Remove(pickup);
         CleanupDestroyedSamples();
-        _hud?.SetObjective($"\uC0D8\uD50C \uAC1C\uC218: {_collected} / {requiredSamples}");
-        _hud?.ShowMessage("\uC0D8\uD50C \uD68C\uC218 \uC644\uB8CC.", 1.2f);
+
+        if (requireAnalysisStep)
+        {
+            _rawSamples++;
+            UpdateObjective();
+            _hud?.ShowMessage("\uC0D8\uD50C \uD68D\uB4DD. \uBD84\uC11D\uB300\uB85C \uAC00\uC138\uC694.", 1.2f);
+        }
+        else
+        {
+            _submittedSamples++;
+            UpdateObjective();
+            _hud?.ShowMessage("\uC0D8\uD50C \uD68C\uC218 \uC644\uB8CC.", 1.2f);
+        }
+
         if (samplePickupClip != null)
         {
             float min = Mathf.Min(samplePickupVolumeRange.x, samplePickupVolumeRange.y);
@@ -414,26 +486,38 @@ public class ExperimentBootstrap : MonoBehaviour
             else AudioSource.PlayClipAtPoint(samplePickupClip, _player ? _player.position : Vector3.zero, volume);
         }
 
-        if (wasLocked && CanExit())
+        if (!requireAnalysisStep && wasLocked && CanExit())
             _hud?.ShowMessage("Exit unlocked.", 1.6f);
     }
 
     public int CollectedSamples => _collected;
     public int RequiredSamples => requiredSamples;
-    public int RemainingSamples => Mathf.Max(0, requiredSamples - _collected);
+    public int RemainingSamples => Mathf.Max(0, requiredSamples - _submittedSamples);
+    public int RawSamples => _rawSamples;
+    public int SubmittedSamples => _submittedSamples;
+    public bool RequireAnalysisStep => requireAnalysisStep;
     public bool IsWatching => _isWatching;
     public bool IsEnding => _state == RunState.Failing || _state == RunState.Succeeding || _state == RunState.Transitioning;
     public float AverageSpeed => _avgSpeed;
     public Transform ExitTransform => _exit ? _exit.transform : null;
 
-    public bool CanExit() => _collected >= requiredSamples;
+    public bool CanExit() => _submittedSamples >= requiredSamples;
 
-    public bool TryGetHintTarget(Vector3 fromWorld, out Vector3 targetWorldPos, out bool isExit)
+    public enum HintTargetKind { Sample, Analyzer, Exit }
+
+    public bool TryGetHintTarget(Vector3 fromWorld, out Vector3 targetWorldPos, out HintTargetKind kind)
     {
         if (CanExit() && _exit != null)
         {
             targetWorldPos = _exit.transform.position;
-            isExit = true;
+            kind = HintTargetKind.Exit;
+            return true;
+        }
+
+        if (requireAnalysisStep && _rawSamples > 0 && _analyzer != null)
+        {
+            targetWorldPos = _analyzer.transform.position;
+            kind = HintTargetKind.Analyzer;
             return true;
         }
 
@@ -456,13 +540,41 @@ public class ExperimentBootstrap : MonoBehaviour
         if (nearest != null)
         {
             targetWorldPos = nearest.transform.position;
-            isExit = false;
+            kind = HintTargetKind.Sample;
             return true;
         }
 
         targetWorldPos = Vector3.zero;
-        isExit = false;
+        kind = HintTargetKind.Sample;
         return false;
+    }
+
+    public bool TryProcessOneSample()
+    {
+        if (!requireAnalysisStep) return false;
+        if (_state != RunState.Playing) return false;
+        if (CanExit()) return false;
+        if (_rawSamples <= 0) return false;
+
+        bool wasLocked = !CanExit();
+        _rawSamples--;
+        _submittedSamples++;
+        UpdateObjective();
+        _hud?.ShowMessage($"\uBD84\uC11D \uC644\uB8CC: {_submittedSamples}/{requiredSamples}", 1.1f);
+
+        if (wasLocked && CanExit())
+            _hud?.ShowMessage("Exit unlocked.", 1.6f);
+
+        return true;
+    }
+
+    void UpdateObjective()
+    {
+        if (_hud == null) return;
+        if (requireAnalysisStep)
+            _hud.SetObjective($"\uC81C\uCD9C: {_submittedSamples} / {requiredSamples} (\uBCF4\uC720: {_rawSamples})");
+        else
+            _hud.SetObjective($"\uC0D8\uD50C \uAC1C\uC218: {_submittedSamples} / {requiredSamples}");
     }
 
     void CleanupDestroyedSamples()
@@ -515,7 +627,8 @@ public class ExperimentBootstrap : MonoBehaviour
         {
             _state = RunState.Transitioning;
             _isWatching = false;
-            StartCoroutine(SceneTransitioner.LoadScene(startSceneName));
+            var startId = ResolveStartSceneIdentifier();
+            StartCoroutine(!string.IsNullOrEmpty(startId) ? SceneTransitioner.LoadScene(startId) : SceneTransitioner.LoadScene(0));
         }
 
         if (Input.GetKeyDown(KeyCode.F7) && _state == RunState.Playing)
@@ -552,7 +665,9 @@ public class ExperimentBootstrap : MonoBehaviour
 
     void ForceUnlockExit()
     {
-        _collected = requiredSamples;
+        _collected = Mathf.Max(_collected, requiredSamples);
+        _rawSamples = 0;
+        _submittedSamples = requiredSamples;
         for (int i = 0; i < _activeSamples.Count; i++)
         {
             var s = _activeSamples[i];
@@ -560,7 +675,7 @@ public class ExperimentBootstrap : MonoBehaviour
         }
         _activeSamples.Clear();
 
-        _hud?.SetObjective($"\uC0D8\uD50C \uAC1C\uC218: {_collected} / {requiredSamples}");
+        UpdateObjective();
         _hud?.ShowMessage("DEV: Exit unlocked.", 1.2f);
     }
 #endif
@@ -585,7 +700,8 @@ public class ExperimentBootstrap : MonoBehaviour
         _hud?.ShowMessage("\uC2E4\uD5D8 \uC885\uB8CC. \uD68C\uC218 \uC131\uACF5.", 2.0f);
         yield return new WaitForSecondsRealtime(2.0f);
         _state = RunState.Transitioning;
-        yield return SceneTransitioner.LoadScene(startSceneName);
+        var startId = ResolveStartSceneIdentifier();
+        yield return !string.IsNullOrEmpty(startId) ? SceneTransitioner.LoadScene(startId) : SceneTransitioner.LoadScene(0);
     }
 
     IEnumerator CoFail()

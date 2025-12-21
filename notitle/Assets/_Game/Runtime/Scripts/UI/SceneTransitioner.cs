@@ -102,13 +102,13 @@ public class SceneTransitioner : MonoBehaviour
     public static IEnumerator LoadScene(string sceneNameOrPath, float fadeOutDuration = -1f, float fadeInDuration = -1f)
     {
         var inst = Ensure();
-        yield return inst.CoLoadScene(sceneNameOrPath, fadeOutDuration, fadeInDuration);
+        yield return inst.StartCoroutine(inst.CoLoadScene(sceneNameOrPath, fadeOutDuration, fadeInDuration));
     }
 
     public static IEnumerator LoadScene(int buildIndex, float fadeOutDuration = -1f, float fadeInDuration = -1f)
     {
         var inst = Ensure();
-        yield return inst.CoLoadScene(buildIndex, fadeOutDuration, fadeInDuration);
+        yield return inst.StartCoroutine(inst.CoLoadScene(buildIndex, fadeOutDuration, fadeInDuration));
     }
 
     IEnumerator CoLoadScene(string sceneNameOrPath, float fadeOutDuration, float fadeInDuration)
