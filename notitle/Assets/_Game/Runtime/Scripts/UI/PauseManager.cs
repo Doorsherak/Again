@@ -519,36 +519,136 @@ public class PauseManager : MonoBehaviour
     {
         if (logVerbose) Debug.Log("[Pause] BtnResume");
         Resume();
+        var root = pauseRoot ? pauseRoot : FindInLoadedScenesByName(pauseRootName);
+        if (root != null) root.SetActive(false);
     }
 
     public void BtnRestart()
     {
         if (logVerbose) Debug.Log("[Pause] BtnRestart");
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        Resume();
+
+        var active = SceneManager.GetActiveScene();
+        if (TryLoadSceneByBuildIndex(active.buildIndex)) return;
+        if (TryLoadSceneByNameOrPath(active.path, active.name)) return;
+
+        Debug.LogWarning($"[Pause] Restart failed. Scene not in Build Settings: '{active.path}'");
     }
 
     string GetFirstMenuScene()
     {
         if (menuSceneNames != null)
+        {
             for (int i = 0; i < menuSceneNames.Length; i++)
-                if (!string.IsNullOrEmpty(menuSceneNames[i])) return menuSceneNames[i];
-        return legacySingleMenuSceneName; // 최후의 보루
+            {
+                var raw = menuSceneNames[i];
+                if (string.IsNullOrEmpty(raw)) continue;
+                var resolved = ResolveSceneIdentifier(raw);
+                if (!string.IsNullOrEmpty(resolved)) return resolved;
+            }
+        }
+
+        var legacyResolved = ResolveSceneIdentifier(legacySingleMenuSceneName);
+        return !string.IsNullOrEmpty(legacyResolved) ? legacyResolved : legacySingleMenuSceneName;
     }
     public void BtnQuitToTitle()
     {
         if (logVerbose) Debug.Log("[Pause] BtnQuitToTitle");
         var menu = GetFirstMenuScene();
-        if (string.IsNullOrEmpty(menu)) return;
-
-        // Prefer unified transition path (handles name collisions via build path resolution + fade).
-        if (SceneTransitioner.Instance != null)
+        if (string.IsNullOrEmpty(menu))
         {
-            StartCoroutine(SceneTransitioner.LoadScene(menu));
+            Debug.LogWarning("[Pause] Menu scene name is empty.");
             return;
         }
 
-        SceneManager.LoadScene(menu);
+        Resume();
+        if (TryLoadSceneByNameOrPath(menu, null)) return;
+
+        Debug.LogWarning($"[Pause] Menu scene not found in Build Settings: '{menu}'");
     }
+
+    string ResolveSceneIdentifier(string sceneNameOrPath)
+    {
+        if (string.IsNullOrEmpty(sceneNameOrPath)) return null;
+        if (sceneNameOrPath.Contains("/") || sceneNameOrPath.Contains("\\") ||
+            sceneNameOrPath.EndsWith(".unity", System.StringComparison.OrdinalIgnoreCase))
+            return sceneNameOrPath;
+
+        for (int i = 0; i < SceneManager.sceneCountInBuildSettings; i++)
+        {
+            var path = SceneUtility.GetScenePathByBuildIndex(i);
+            if (string.IsNullOrEmpty(path)) continue;
+            var name = System.IO.Path.GetFileNameWithoutExtension(path);
+            if (string.Equals(name, sceneNameOrPath, System.StringComparison.OrdinalIgnoreCase))
+                return path;
+        }
+        return null;
+    }
+
+    bool TryLoadSceneByBuildIndex(int buildIndex)
+    {
+        if (buildIndex < 0) return false;
+        SceneManager.LoadScene(buildIndex);
+        return true;
+    }
+
+    bool TryLoadSceneByNameOrPath(string sceneNameOrPath, string fallbackName)
+    {
+        var resolved = ResolveSceneIdentifier(sceneNameOrPath);
+        if (string.IsNullOrEmpty(resolved) && !string.IsNullOrEmpty(fallbackName))
+            resolved = ResolveSceneIdentifier(fallbackName);
+
+        if (!string.IsNullOrEmpty(resolved))
+        {
+            if (SceneUtility.GetBuildIndexByScenePath(resolved) >= 0)
+            {
+                SceneManager.LoadScene(resolved);
+                return true;
+            }
+#if UNITY_EDITOR
+            if (TryLoadSceneInEditor(resolved, fallbackName)) return true;
+#endif
+            return false;
+        }
+
+#if UNITY_EDITOR
+        if (TryLoadSceneInEditor(sceneNameOrPath, fallbackName)) return true;
+#endif
+        return false;
+    }
+
+#if UNITY_EDITOR
+    bool TryLoadSceneInEditor(string sceneNameOrPath, string fallbackName)
+    {
+        var path = sceneNameOrPath;
+        if (!IsSceneAssetPath(path))
+        {
+            path = FindScenePathByName(sceneNameOrPath);
+            if (string.IsNullOrEmpty(path) && !string.IsNullOrEmpty(fallbackName))
+                path = FindScenePathByName(fallbackName);
+        }
+
+        if (string.IsNullOrEmpty(path)) return false;
+        UnityEditor.SceneManagement.EditorSceneManager.LoadSceneInPlayMode(
+            path, new LoadSceneParameters(LoadSceneMode.Single));
+        return true;
+    }
+
+    bool IsSceneAssetPath(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return false;
+        return value.Contains("/") || value.Contains("\\") ||
+               value.EndsWith(".unity", System.StringComparison.OrdinalIgnoreCase);
+    }
+
+    string FindScenePathByName(string sceneName)
+    {
+        if (string.IsNullOrEmpty(sceneName)) return null;
+        var guids = UnityEditor.AssetDatabase.FindAssets($"{sceneName} t:Scene");
+        if (guids == null || guids.Length == 0) return null;
+        return UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
+    }
+#endif
 
 #if ENABLE_INPUT_SYSTEM
     void ApplyInputSystemUpdateModeForPause(bool paused)

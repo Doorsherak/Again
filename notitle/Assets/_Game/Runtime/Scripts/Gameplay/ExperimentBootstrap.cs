@@ -177,6 +177,7 @@ public class ExperimentBootstrap : MonoBehaviour
         if (_observationCo != null) StopCoroutine(_observationCo);
 
         TryBindSceneObjects();
+        ResetPlayerStateForNewRun();
         EnsureHud();
 
         if (_hud) _hud.SetVisible(scene.name != startSceneName);
@@ -211,6 +212,29 @@ public class ExperimentBootstrap : MonoBehaviour
 
         _corridor = Object.FindFirstObjectByType<CorridorBuilder>(FindObjectsInactive.Include);
         _jumpscare = Object.FindFirstObjectByType<JumpscareTrigger>(FindObjectsInactive.Include);
+    }
+
+    void ResetPlayerStateForNewRun()
+    {
+        if (_player == null) return;
+
+        var movement = _player.GetComponent("FirstPersonMovement") as Behaviour;
+        if (movement != null && !movement.enabled) movement.enabled = true;
+
+        var crouch = FindComponentByTypeName(_player, "Crouch");
+        if (crouch != null) crouch.SendMessage("ForceStand", SendMessageOptions.DontRequireReceiver);
+    }
+
+    static Component FindComponentByTypeName(Transform root, string typeName)
+    {
+        if (root == null || string.IsNullOrEmpty(typeName)) return null;
+        var comps = root.GetComponentsInChildren<Component>(true);
+        for (int i = 0; i < comps.Length; i++)
+        {
+            var c = comps[i];
+            if (c != null && c.GetType().Name == typeName) return c;
+        }
+        return null;
     }
 
     Transform FindPlayer()

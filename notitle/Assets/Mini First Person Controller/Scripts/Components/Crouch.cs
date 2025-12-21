@@ -25,6 +25,18 @@ public class Crouch : MonoBehaviour
     public bool IsCrouched { get; private set; }
     public event System.Action CrouchStart, CrouchEnd;
 
+    void Awake()
+    {
+        // Cache defaults so we can reliably reset after scene reloads.
+        if (!movement) movement = GetComponentInParent<FirstPersonMovement>();
+        if (!headToLower && movement) headToLower = movement.GetComponentInChildren<Camera>()?.transform;
+        if (!colliderToLower && movement) colliderToLower = movement.GetComponentInChildren<CapsuleCollider>();
+
+        if (headToLower && !defaultHeadYLocalPosition.HasValue)
+            defaultHeadYLocalPosition = headToLower.localPosition.y;
+        if (colliderToLower && !defaultColliderHeight.HasValue)
+            defaultColliderHeight = colliderToLower.height;
+    }
 
     void Reset()
     {
@@ -140,4 +152,28 @@ public class Crouch : MonoBehaviour
 
     float SpeedOverride() => movementSpeed;
     #endregion
+
+    public void ForceStand()
+    {
+        if (headToLower && defaultHeadYLocalPosition.HasValue)
+        {
+            headToLower.localPosition = new Vector3(
+                headToLower.localPosition.x,
+                defaultHeadYLocalPosition.Value,
+                headToLower.localPosition.z);
+        }
+
+        if (colliderToLower && defaultColliderHeight.HasValue)
+        {
+            colliderToLower.height = defaultColliderHeight.Value;
+            colliderToLower.center = Vector3.up * colliderToLower.height * 0.5f;
+        }
+
+        if (IsCrouched)
+        {
+            IsCrouched = false;
+            SetSpeedOverrideActive(false);
+            CrouchEnd?.Invoke();
+        }
+    }
 }

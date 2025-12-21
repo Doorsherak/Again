@@ -4,12 +4,16 @@ using TMPro;
 using UnityEngine.SceneManagement;
 using UnityEngine.EventSystems;
 using System.Collections;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem.UI;
+#endif
 
 [RequireComponent(typeof(CanvasGroup))]
 public class StartScreenManager_Safe : MonoBehaviour
 {
     [Header("Refs (auto find if unassigned)")]
     [SerializeField] Button startButton, optionsButton, quitButton;
+    [SerializeField] Button backButton;
     [SerializeField] TextMeshProUGUI gameTitle;
     [SerializeField] GameObject optionsPanel;   // uses CanvasGroup inside
     [SerializeField] Slider volumeSlider;
@@ -56,6 +60,8 @@ public class StartScreenManager_Safe : MonoBehaviour
         if (!startButton) startButton = GameObject.Find("StartButton")?.GetComponent<Button>();
         if (!optionsButton) optionsButton = GameObject.Find("OptionsButton")?.GetComponent<Button>();
         if (!quitButton) quitButton = GameObject.Find("QuitButton")?.GetComponent<Button>();
+        if (!backButton) backButton = FindButtonByName(optionsPanel, "BackButton");
+        if (!backButton) backButton = GameObject.Find("BackButton")?.GetComponent<Button>();
         if (!gameTitle) gameTitle = GetComponentInChildren<TextMeshProUGUI>(true);
 
         // 2) ensure CanvasGroup
@@ -77,6 +83,7 @@ public class StartScreenManager_Safe : MonoBehaviour
     {
         if (startButton) startButton.onClick.AddListener(StartGame);
         if (optionsButton) optionsButton.onClick.AddListener(() => ToggleOptions(true));
+        if (backButton) backButton.onClick.AddListener(() => ToggleOptions(false));
         if (quitButton) quitButton.onClick.AddListener(QuitGame);
         ApplyButtonTheme(startButton);
         ApplyButtonTheme(optionsButton);
@@ -262,15 +269,9 @@ public class StartScreenManager_Safe : MonoBehaviour
 #endif
         if (existing != null && existing.Length > 0)
         {
-            // Prefer one in the same scene as this manager
-            EventSystem chosen = null;
-            foreach (var es in existing)
-            {
-                if (es && es.gameObject.scene == gameObject.scene) { chosen = es; break; }
-            }
-            if (!chosen) chosen = existing[0];
-
+            EventSystem chosen = ChooseEventSystem(existing);
             if (chosen && !chosen.gameObject.activeSelf) chosen.gameObject.SetActive(true);
+            ConfigureEventSystemModules(chosen);
 
             // Deactivate others to silence duplicate warnings
             foreach (var es in existing)
@@ -281,8 +282,72 @@ public class StartScreenManager_Safe : MonoBehaviour
             return;
         }
 
+#if ENABLE_INPUT_SYSTEM
+        var go = new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
+#else
         var go = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+#endif
         // keep scene-scoped to avoid duplicates when loading other scenes that already have one
+    }
+
+    static Button FindButtonByName(GameObject root, string name)
+    {
+        if (root == null || string.IsNullOrEmpty(name)) return null;
+        var buttons = root.GetComponentsInChildren<Button>(true);
+        for (int i = 0; i < buttons.Length; i++)
+        {
+            var b = buttons[i];
+            if (b && b.name == name) return b;
+        }
+        return null;
+    }
+
+    EventSystem ChooseEventSystem(EventSystem[] existing)
+    {
+        if (existing == null || existing.Length == 0) return null;
+
+        EventSystem chosen = null;
+        int bestScore = int.MinValue;
+        for (int i = 0; i < existing.Length; i++)
+        {
+            var es = existing[i];
+            if (!es) continue;
+            int score = 0;
+            if (es.gameObject.scene == gameObject.scene) score += 5;
+#if ENABLE_INPUT_SYSTEM
+            if (es.GetComponent<InputSystemUIInputModule>() != null) score += 10;
+#else
+            if (es.GetComponent<StandaloneInputModule>() != null) score += 10;
+#endif
+            if (es.isActiveAndEnabled) score += 2;
+            if (score > bestScore)
+            {
+                bestScore = score;
+                chosen = es;
+            }
+        }
+
+        return chosen ? chosen : existing[0];
+    }
+
+    void ConfigureEventSystemModules(EventSystem es)
+    {
+        if (es == null) return;
+
+#if ENABLE_INPUT_SYSTEM
+        var inputSystem = es.GetComponent<InputSystemUIInputModule>();
+        if (inputSystem == null) inputSystem = es.gameObject.AddComponent<InputSystemUIInputModule>();
+        if (!inputSystem.enabled) inputSystem.enabled = true;
+        if (inputSystem.actionsAsset == null) inputSystem.AssignDefaultActions();
+
+        var legacy = es.GetComponent<StandaloneInputModule>();
+        if (legacy != null) legacy.enabled = false;
+#else
+        var legacy = es.GetComponent<StandaloneInputModule>();
+        if (legacy == null) legacy = es.gameObject.AddComponent<StandaloneInputModule>();
+        if (!legacy.enabled) legacy.enabled = true;
+#endif
+        es.UpdateModules();
     }
 
     void EnsureIntroOverlay()
