@@ -2,6 +2,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 [DisallowMultipleComponent]
 public class JumpscareTrigger : MonoBehaviour
@@ -78,6 +79,11 @@ public class JumpscareTrigger : MonoBehaviour
     public bool autoRestart = true;             // 자동으로 씬 다시 로드할지
     public bool showCursorOnEnd = false;        // 페이드 후 커서 보이게(메뉴용)
 
+    [Header("Fade Canvas")]
+    public bool autoFitFadeCanvas = true;
+    public bool autoCreateFadeImage = true;
+    public Color fadeColor = Color.black;
+
     [Header("카메라 쉐이크 옵션")]
     public bool useCameraShake = true;
     public Transform cameraTransform;           // 흔들 카메라 Transform
@@ -125,7 +131,7 @@ public class JumpscareTrigger : MonoBehaviour
     public float impactFlashGap = 0.05f;
     public bool useFovKick = true;
     public Camera targetCamera;
-    public float fovKick = -12f;
+    public float fovKick = -20f;
     public float fovKickInTime = 0.04f;
     public float fovKickOutTime = 0.12f;
     public bool usePreImpactBlackout = true;
@@ -164,6 +170,13 @@ public class JumpscareTrigger : MonoBehaviour
     public float monsterLightOutTime = 0.2f;
     public bool overrideMonsterLightColor = false;
     public Color monsterLightColor = new Color(0.75f, 0.85f, 1f, 1f);
+
+    [Header("Monster Light Layers")]
+    public bool restrictLightToMonsterLayer = false;
+    [Tooltip("URP Asset에서 Light Layers를 켜야 동작합니다.")]
+    [Range(0, 31)] public int monsterRenderingLayer = 1;
+    public bool applyLayerToMonsterRenderers = true;
+    public bool restoreMonsterRenderersLayerAfter = true;
 
     [Header("Monster Lunge")]
     public bool useMonsterLunge = true;
@@ -216,6 +229,11 @@ public class JumpscareTrigger : MonoBehaviour
     bool _nearClipOverridden = false;
     float _nearClipOriginal = 0.3f;
     Camera _nearClipCamera;
+    bool _monsterLayerApplied = false;
+    Light _monsterLayerLight;
+    int _monsterLayerLightMask = 1;
+    readonly List<Renderer> _monsterRenderers = new List<Renderer>(16);
+    readonly List<uint> _monsterRendererMasks = new List<uint>(16);
     readonly List<AudioSource> _duckTargets = new List<AudioSource>(8);
     readonly List<float> _duckOriginalVolumes = new List<float>(8);
     readonly List<float> _duckStartVolumes = new List<float>(8);
@@ -233,7 +251,10 @@ public class JumpscareTrigger : MonoBehaviour
         _collider = GetComponent<Collider>();
 
         if (fadeCanvasGroup != null)
+        {
+            EnsureFadeCanvasFullScreen();
             fadeCanvasGroup.alpha = 0f;
+        }
 
         if (monster != null)
             monster.SetActive(false);
@@ -268,6 +289,7 @@ public class JumpscareTrigger : MonoBehaviour
         if (!Application.isPlaying) return;
         RestorePlayerRenderers();
         RestoreNearClipOverride();
+        RestoreMonsterLightLayering();
     }
 
     void Start()
@@ -435,6 +457,7 @@ public class JumpscareTrigger : MonoBehaviour
         ResolveCameraTransformRuntime(forceAssign: false);
         ApplyNearClipOverride();
         HidePlayerRenderers();
+        ApplyMonsterLightLayering();
         if (monster != null)
         {
             if (placeMonsterAtCamera && cameraTransform != null)
@@ -479,6 +502,7 @@ public class JumpscareTrigger : MonoBehaviour
             yield return new WaitForSeconds(delayBeforeRestart);
             RestorePlayerRenderers();
             RestoreNearClipOverride();
+            RestoreMonsterLightLayering();
             Scene current = SceneManager.GetActiveScene();
             SceneManager.LoadScene(current.buildIndex);
         }
@@ -489,6 +513,7 @@ public class JumpscareTrigger : MonoBehaviour
             if (monster != null) monster.SetActive(false);
             RestorePlayerRenderers();
             RestoreNearClipOverride();
+            RestoreMonsterLightLayering();
         }
     }
 
@@ -793,6 +818,7 @@ public class JumpscareTrigger : MonoBehaviour
         if (!useMonsterLightPulse) return;
         var light = ResolveMonsterLight();
         if (light == null) return;
+        ApplyMonsterLightLayering();
         PrepareMonsterLight(light);
         if (_monsterLightCo != null) StopCoroutine(_monsterLightCo);
         _monsterLightCo = StartCoroutine(MonsterLightPulse(light));
@@ -965,6 +991,64 @@ public class JumpscareTrigger : MonoBehaviour
         _nearClipOriginal = 0.3f;
     }
 
+    void ApplyMonsterLightLayering()
+    {
+        if (!restrictLightToMonsterLayer || _monsterLayerApplied) return;
+        int layer = Mathf.Clamp(monsterRenderingLayer, 0, 31);
+        int lightMask = 1 << layer;
+        uint rendererMask = 1u << layer;
+
+        var light = ResolveMonsterLight();
+        if (light != null)
+        {
+            _monsterLayerLight = light;
+            _monsterLayerLightMask = light.renderingLayerMask;
+            light.renderingLayerMask = lightMask;
+        }
+
+        if (applyLayerToMonsterRenderers && monster != null)
+        {
+            _monsterRenderers.Clear();
+            _monsterRendererMasks.Clear();
+            var renderers = monster.GetComponentsInChildren<Renderer>(true);
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                var renderer = renderers[i];
+                if (renderer == null) continue;
+                _monsterRenderers.Add(renderer);
+                _monsterRendererMasks.Add(renderer.renderingLayerMask);
+                renderer.renderingLayerMask = rendererMask;
+            }
+        }
+
+        _monsterLayerApplied = true;
+    }
+
+    void RestoreMonsterLightLayering()
+    {
+        if (!_monsterLayerApplied) return;
+
+        if (_monsterLayerLight != null)
+            _monsterLayerLight.renderingLayerMask = _monsterLayerLightMask;
+
+        if (restoreMonsterRenderersLayerAfter)
+        {
+            for (int i = 0; i < _monsterRenderers.Count; i++)
+            {
+                var renderer = _monsterRenderers[i];
+                if (renderer == null) continue;
+                uint rendererMask = i < _monsterRendererMasks.Count ? _monsterRendererMasks[i] : renderer.renderingLayerMask;
+                renderer.renderingLayerMask = rendererMask;
+            }
+        }
+
+        _monsterLayerApplied = false;
+        _monsterLayerLight = null;
+        _monsterLayerLightMask = 1;
+        _monsterRenderers.Clear();
+        _monsterRendererMasks.Clear();
+    }
+
     IEnumerator MonsterLunge()
     {
         if (monster == null) yield break;
@@ -1025,6 +1109,30 @@ public class JumpscareTrigger : MonoBehaviour
         }
 
         fadeCanvasGroup.alpha = 1f;
+    }
+
+    void EnsureFadeCanvasFullScreen()
+    {
+        if (!autoFitFadeCanvas || fadeCanvasGroup == null) return;
+
+        var rt = fadeCanvasGroup.GetComponent<RectTransform>();
+        if (rt != null)
+        {
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            rt.localScale = Vector3.one;
+        }
+
+        if (autoCreateFadeImage)
+        {
+            var img = fadeCanvasGroup.GetComponent<Image>();
+            if (img == null) img = fadeCanvasGroup.gameObject.AddComponent<Image>();
+            img.color = fadeColor;
+            img.raycastTarget = false;
+        }
     }
 
     IEnumerator CameraShake()

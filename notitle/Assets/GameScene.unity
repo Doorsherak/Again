@@ -1627,13 +1627,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 434373092}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalRotation: {x: -0.7071067, y: -0, z: -0, w: 0.70710695}
+  m_LocalPosition: {x: 0, y: 1, z: 0}
+  m_LocalScale: {x: 1.0304949, y: 1.0304952, z: 1.0304952}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 543017299}
-  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &434373094
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1672,7 +1672,7 @@ Light:
   m_GameObject: {fileID: 434373092}
   m_Enabled: 1
   serializedVersion: 11
-  m_Type: 2
+  m_Type: 0
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Intensity: 1000
   m_Range: 1
@@ -2201,7 +2201,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
-    - targetCorrespondingSourceObject: {fileID: 485498045815337757, guid: 13ed0a44988daf04abafa7862694fccb, type: 3}
+    - targetCorrespondingSourceObject: {fileID: 4369863440153098377, guid: 13ed0a44988daf04abafa7862694fccb, type: 3}
       insertIndex: -1
       addedObject: {fileID: 434373093}
     m_AddedComponents: []
@@ -2213,7 +2213,7 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &543017299 stripped
 Transform:
-  m_CorrespondingSourceObject: {fileID: 485498045815337757, guid: 13ed0a44988daf04abafa7862694fccb, type: 3}
+  m_CorrespondingSourceObject: {fileID: 4369863440153098377, guid: 13ed0a44988daf04abafa7862694fccb, type: 3}
   m_PrefabInstance: {fileID: 543017297}
   m_PrefabAsset: {fileID: 0}
 --- !u!114 &571500600 stripped
@@ -2586,7 +2586,7 @@ MonoBehaviour:
   preferTargetCameraForAutoResolve: 1
   allowPlayerControllerCameraSearch: 1
   placeMonsterAtCamera: 1
-  monsterCameraLocalPos: {x: 0, y: -1.9, z: 0.3}
+  monsterCameraLocalPos: {x: 3.5527137e-15, y: -1.9, z: 0.30000022}
   monsterCameraLocalEuler: {x: 2, y: 180, z: 0}
   monsterPositionJitter: {x: 0.03, y: 0.02, z: 0.03}
   monsterRotationJitter: {x: 0, y: 4, z: 0}
@@ -2636,16 +2636,16 @@ MonoBehaviour:
   autoCreateKeyLightIfMissing: 1
   keyLightAttachToCamera: 1
   keyLightType: 0
-  keyLightCameraLocalPos: {x: 0, y: 0.05, z: 0.15}
+  keyLightCameraLocalPos: {x: 0, y: 0, z: 0.15}
   keyLightCameraLocalEuler: {x: 0, y: 0, z: 0}
   keyLightRange: 4
-  keyLightSpotAngle: 70
-  keyLightAimAtMonster: 1
+  keyLightSpotAngle: 90
+  keyLightAimAtMonster: 0
   monsterLightTargetIntensity: 16
   monsterLightInTime: 0.05
   monsterLightHoldTime: 0.1
   monsterLightOutTime: 0.2
-  overrideMonsterLightColor: 1
+  overrideMonsterLightColor: 0
   monsterLightColor: {r: 0.75, g: 0.85, b: 1, a: 1}
   useMonsterLunge: 1
   lungeDistance: 0.25

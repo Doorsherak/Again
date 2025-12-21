@@ -22,6 +22,11 @@ public class ExperimentBootstrap : MonoBehaviour
     [SerializeField] bool spawnExit = true;
     [SerializeField] float pickupHeight = 0.9f;
 
+    [Header("Audio")]
+    [SerializeField] AudioSource uiSfxSource;
+    [SerializeField] AudioClip samplePickupClip;
+    [SerializeField] Vector2 samplePickupVolumeRange = new Vector2(0.7f, 0.9f);
+
     ExperimentHud _hud;
     Transform _player;
     CharacterController _playerController;
@@ -78,8 +83,8 @@ public class ExperimentBootstrap : MonoBehaviour
 
         if (_hud)
         {
-            _hud.SetObjective($"샘플 회수: 0 / {requiredSamples}");
-            _hud.ShowMessage("투약 완료. 환각 반응 테스트를 시작합니다.", 2.2f);
+            _hud.SetObjective($"\uC0D8\uD50C \uAC1C\uC218: 0 / {requiredSamples}");
+            _hud.ShowMessage("\uC2E4\uD5D8 \uC2DC\uC791. \uC0D8\uD50C\uC744 \uC218\uC9D1\uD558\uC138\uC694.", 2.2f);
         }
 
         if (_corridor)
@@ -233,12 +238,12 @@ public class ExperimentBootstrap : MonoBehaviour
         while (!_ending)
         {
             _isWatching = false;
-            _hud?.SetStatus("이동 가능");
+            _hud?.SetStatus(string.Empty);
             yield return new WaitForSecondsRealtime(Random.Range(freeMoveDuration.x, freeMoveDuration.y));
 
             _isWatching = true;
             ResetSpeedSampling();
-            _hud?.SetStatus("관찰 중 - 움직이지 마");
+            _hud?.SetStatus("\uAD00\uCC30 \uC911 - \uC6C0\uC9C1\uC774\uC9C0 \uB9C8");
             yield return new WaitForSecondsRealtime(Random.Range(watchDuration.x, watchDuration.y));
         }
     }
@@ -295,8 +300,16 @@ public class ExperimentBootstrap : MonoBehaviour
     public void OnCollectedSample()
     {
         _collected++;
-        _hud?.SetObjective($"샘플 회수: {_collected} / {requiredSamples}");
-        _hud?.ShowMessage("샘플 회수 완료.", 1.2f);
+        _hud?.SetObjective($"\uC0D8\uD50C \uAC1C\uC218: {_collected} / {requiredSamples}");
+        _hud?.ShowMessage("\uC0D8\uD50C \uD68C\uC218 \uC644\uB8CC.", 1.2f);
+        if (samplePickupClip != null)
+        {
+            float min = Mathf.Min(samplePickupVolumeRange.x, samplePickupVolumeRange.y);
+            float max = Mathf.Max(samplePickupVolumeRange.x, samplePickupVolumeRange.y);
+            float volume = Random.Range(min, max);
+            if (uiSfxSource != null) uiSfxSource.PlayOneShot(samplePickupClip, volume);
+            else AudioSource.PlayClipAtPoint(samplePickupClip, _player ? _player.position : Vector3.zero, volume);
+        }
     }
 
     public int CollectedSamples => _collected;
@@ -312,7 +325,7 @@ public class ExperimentBootstrap : MonoBehaviour
         if (_ending) return;
         if (!CanExit())
         {
-            _hud?.ShowMessage($"샘플이 부족합니다. ({_collected}/{requiredSamples})", 1.8f);
+            _hud?.ShowMessage($"\uC0D8\uD50C\uC774 \uBD80\uC871\uD569\uB2C8\uB2E4. ({_collected}/{requiredSamples})", 1.8f);
             return;
         }
 
@@ -322,8 +335,8 @@ public class ExperimentBootstrap : MonoBehaviour
     IEnumerator CoWin()
     {
         _ending = true;
-        _hud?.ShowMessage("실험 종료. 회수 성공.", 2.0f);
-        yield return new WaitForSecondsRealtime(1.5f);
+        _hud?.ShowMessage("\uC2E4\uD5D8 \uC885\uB8CC. \uD68C\uC218 \uC131\uACF5.", 2.0f);
+        yield return new WaitForSecondsRealtime(3.0f);
         SceneManager.LoadScene(startSceneName);
     }
 
@@ -333,7 +346,7 @@ public class ExperimentBootstrap : MonoBehaviour
         _ending = true;
 
         Time.timeScale = 1f;
-        _hud?.ShowMessage("실험 실패. 움직임 감지.", 1.6f);
+        _hud?.ShowMessage("\uC2E4\uD5D8 \uC2E4\uD328. \uC6C0\uC9C1\uC784 \uAC10\uC9C0.", 1.6f);
         if (_jumpscare != null)
         {
             _jumpscare.autoRestart = true;

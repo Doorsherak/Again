@@ -28,6 +28,9 @@ public class FirstPersonHorrorSystem : MonoBehaviour
     public float intensityChangeSpeed = 1f;
     public bool enableCameraShake = true;
 
+    [Header("Debug")]
+    [SerializeField] bool showDebugHud = false;
+
     // Private variables
     private CharacterController controller;
     private Vector3 lastPosition;
@@ -307,7 +310,7 @@ public class FirstPersonHorrorSystem : MonoBehaviour
     // 디버깅용 - 현재 상태 확인
     void OnGUI()
     {
-        if (Application.isEditor)
+        if (Application.isEditor && showDebugHud)
         {
             GUILayout.Label($"Speed: {currentSpeed:F2}");
             GUILayout.Label($"Avg Speed: {averageSpeed:F2}");
